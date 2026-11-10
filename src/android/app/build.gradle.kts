@@ -64,7 +64,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.eden.eden_emulator"
+        applicationId = (project.findProperty("appId") as String?) ?: "io.github.zortos293.lichii"
         minSdk = 24
         targetSdk = 36
         versionName = getGitVersion()
@@ -190,8 +190,10 @@ android {
             isDefault = true
             minSdk = 33
 
-            manifestPlaceholders += mapOf("appNameBase" to "Eden")
-            resValue("string", "app_name_suffixed", "Eden")
+            val isAntutu = (project.findProperty("appId") as String?) == "com.antutu.ABenchMark"
+            val baseTitle = if (isAntutu) "Lichii Optimized" else "Lichii"
+            manifestPlaceholders += mapOf("appNameBase" to baseTitle)
+            resValue("string", "app_name_suffixed", baseTitle)
 
             ndk {
                 abiFilters += listOf("arm64-v8a")
@@ -200,10 +202,10 @@ android {
 
         create("genshinSpoof") {
             dimension = "version"
-            minSdk = 35
-            manifestPlaceholders += mapOf("appNameBase" to "Eden Optimized")
-            resValue("string", "app_name_suffixed", "Eden Optimized")
-            applicationId = "com.miHoYo.Yuanshen"
+            minSdk = 31
+            manifestPlaceholders += mapOf("appNameBase" to "Lichii Optimized")
+            resValue("string", "app_name_suffixed", "Lichii Optimized")
+            applicationId = "com.antutu.ABenchMark"
 
             externalNativeBuild {
                 cmake {
@@ -265,12 +267,12 @@ android {
     }
 
     productFlavors.all {
-        val currentName = manifestPlaceholders["appNameBase"] as? String ?: "Eden"
+        val currentName = manifestPlaceholders["appNameBase"] as? String ?: "Lichii"
         val suffix = if (isNightly) " Nightly" else ""
 
         // apply nightly suffix I/A
         resValue("string", "app_name_suffixed", "$currentName$suffix")
-        resValue("string", "app_name", "Eden$suffix")
+        resValue("string", "app_name", "Lichii$suffix")
     }
 
     sourceSets {

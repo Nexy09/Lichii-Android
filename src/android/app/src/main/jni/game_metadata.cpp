@@ -10,6 +10,8 @@
 #include "core/file_sys/patch_manager.h"
 #include "core/loader/loader.h"
 #include "core/loader/nro.h"
+#include "core/loader/nup.h"
+#include "core/loader/nx.h"
 #include "native.h"
 
 struct RomMetadata {
@@ -46,7 +48,23 @@ static RomMetadata CacheRomMetadata(const std::string& path) {
             entry.developer = loader->ReadControlData(nacp) == Loader::ResultStatus::Success
                 ? nacp.GetDeveloperName()
                 : "";
-            entry.version = "1.0.0";
+            entry.version = nacp.GetVersionString();
+            if (entry.version.empty()) {
+                entry.version = "1.0.0";
+            }
+            if (loader->GetFileType() == Loader::FileType::NUP) {
+                auto loader_nup = reinterpret_cast<Loader::AppLoader_NUP*>(loader.get());
+                std::string nup_ver;
+                if (loader_nup->ReadDisplayVersion(nup_ver) == Loader::ResultStatus::Success && !nup_ver.empty()) {
+                    entry.version = nup_ver;
+                }
+            } else if (loader->GetFileType() == Loader::FileType::NX) {
+                auto loader_nx = reinterpret_cast<Loader::AppLoader_NX*>(loader.get());
+                std::string nx_ver;
+                if (loader_nx->ReadDisplayVersion(nx_ver) == Loader::ResultStatus::Success && !nx_ver.empty()) {
+                    entry.version = nx_ver;
+                }
+            }
         }
         if (loader->GetFileType() == Loader::FileType::NRO) {
             auto loader_nro = reinterpret_cast<Loader::AppLoader_NRO*>(loader.get());
@@ -77,7 +95,8 @@ jboolean Java_org_yuzu_yuzu_1emu_utils_GameMetadata_getIsValid(JNIEnv* env, jobj
             if (file_type == Loader::FileType::Unknown || file_type == Loader::FileType::Error)
                 return false;
             if ((file_type == Loader::FileType::NSP || file_type == Loader::FileType::XCI ||
-                 file_type == Loader::FileType::NSZ || file_type == Loader::FileType::XCZ) &&
+                 file_type == Loader::FileType::NSZ || file_type == Loader::FileType::XCZ ||
+                 file_type == Loader::FileType::NUP || file_type == Loader::FileType::NX) &&
                 !Loader::IsBootableGameContainer(file, file_type))
                 return false;
             u64 program_id = 0;

@@ -51,12 +51,16 @@ std::vector<Asset> Release::GetPlatformAssets(std::string_view platform,
         }
     } else if (platform == "windows-x86_64" || (platform == "macos-arm64" && !pgo)) {
         extensions = {".zip"};
+    } else if (platform == "android-arm64") {
+        extensions = {".apk"};
     } else {
         return {};
     }
 
     const std::string host_url = "https://github.com";
-    const auto path = fmt::format("/{}/releases/download/{}/", Common::g_build_auto_update_repo, tag);
+    const auto path = !base_download_url.empty()
+                          ? (base_download_url + "/")
+                          : fmt::format("/{}/releases/download/{}/", Common::g_build_auto_update_repo, tag);
     for (const std::string_view variant : pgo ? std::vector<std::string_view>{"-pgo", ""}
                                               : std::vector<std::string_view>{""}) {
         for (const auto extension : extensions) {
@@ -74,6 +78,23 @@ std::vector<Asset> Release::GetPlatformAssets(std::string_view platform,
                 asset.size = info->second.size;
             }
             return {std::move(asset)};
+        }
+    }
+    if (platform == "android-arm64") {
+        for (const auto& url : assets) {
+            if (url.ends_with(".apk")) {
+                const auto slash = url.rfind('/');
+                const auto filename = slash != std::string::npos ? url.substr(slash + 1) : url;
+                Asset asset{.name = "Android",
+                            .url = host_url,
+                            .path = path + filename,
+                            .filename = filename};
+                if (const auto info = asset_info.find(url); info != asset_info.end()) {
+                    asset.sha256 = info->second.sha256;
+                    asset.size = info->second.size;
+                }
+                return {std::move(asset)};
+            }
         }
     }
     return {};

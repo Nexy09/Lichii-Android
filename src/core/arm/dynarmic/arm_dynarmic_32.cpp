@@ -275,6 +275,7 @@ void ArmDynarmic32::MakeJit(Common::PageTable* page_table) {
     case Settings::CpuAccuracy::Auto:
         config.unsafe_optimizations = true;
         config.optimizations |= Dynarmic::OptimizationFlag::Unsafe_UnfuseFMA;
+        config.optimizations |= Dynarmic::OptimizationFlag::Unsafe_ReducedErrorFP;
         config.optimizations |= Dynarmic::OptimizationFlag::Unsafe_IgnoreStandardFPCRValue;
         config.optimizations |= Dynarmic::OptimizationFlag::Unsafe_InaccurateNaN;
         config.optimizations |= Dynarmic::OptimizationFlag::Unsafe_IgnoreGlobalMonitor;

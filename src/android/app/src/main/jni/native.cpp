@@ -1931,7 +1931,8 @@ JNIEXPORT jobject JNICALL Java_org_yuzu_yuzu_1emu_NativeLibrary_checkForUpdate(
     // TODO(crueter): Handling for multiple assets?
     // Maybe another data class x(
     for (const Common::Net::Asset &a : assets) {
-        const auto jaurl = env->NewStringUTF(a.path.c_str());
+        const std::string full_url = a.url + a.path;
+        const auto jaurl = env->NewStringUTF(full_url.c_str());
         env->CallVoidMethod(updateResult, addAsset, jaurl);
         env->DeleteLocalRef(jaurl);
     }

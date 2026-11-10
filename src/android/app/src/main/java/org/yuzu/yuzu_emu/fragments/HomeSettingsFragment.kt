@@ -82,6 +82,16 @@ class HomeSettingsFragment : Fragment() {
         val optionsList: MutableList<HomeSetting> = mutableListOf<HomeSetting>().apply {
             add(
                 HomeSetting(
+                    R.string.auto_update_settings_title,
+                    R.string.auto_update_settings_description,
+                    R.drawable.ic_install,
+                    {
+                        mainActivity.openAutoUpdateSettings()
+                    }
+                )
+            )
+            add(
+                HomeSetting(
                     R.string.advanced_settings,
                     R.string.settings_description,
                     R.drawable.ic_settings,

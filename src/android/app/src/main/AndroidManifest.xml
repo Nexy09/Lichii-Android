@@ -106,6 +106,11 @@ SPDX-License-Identifier: GPL-3.0-or-later
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Keep emulation running in background"/>
         </service>
 
+        <service
+            android:name="org.yuzu.yuzu_emu.updater.UpdateCheckJobService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
+
         <provider
             android:name=".features.DocumentProvider"
             android:authorities="${applicationId}.user"

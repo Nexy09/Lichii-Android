@@ -154,7 +154,9 @@ class TextureCache : public VideoCommon::ChannelSetupCaches<TextureCacheChannelI
 
     static constexpr size_t UNSET_CHANNEL{(std::numeric_limits<size_t>::max)()};
 
-#ifdef YUZU_LEGACY
+#if defined(__ANDROID__)
+    static constexpr s64 TARGET_THRESHOLD = 1_GiB + 512_MiB;
+#elif defined(YUZU_LEGACY)
     static constexpr s64 TARGET_THRESHOLD = 3_GiB;
 #else
     static constexpr s64 TARGET_THRESHOLD = 4_GiB;
@@ -189,8 +191,13 @@ class TextureCache : public VideoCommon::ChannelSetupCaches<TextureCacheChannelI
     /// EDEN_NX2_MEM_TRACE: when the last memory trace lines were logged.
     std::chrono::steady_clock::time_point mem_trace_time{};
 
+#ifdef __ANDROID__
+    static constexpr s64 DEFAULT_EXPECTED_MEMORY = 512_MiB;
+    static constexpr s64 DEFAULT_CRITICAL_MEMORY = 768_MiB;
+#else
     static constexpr s64 DEFAULT_EXPECTED_MEMORY = 1_GiB + 125_MiB;
     static constexpr s64 DEFAULT_CRITICAL_MEMORY = 1_GiB + 625_MiB;
+#endif
     /// The most device memory the collector lets the cache fill before it collects in earnest on
     /// cards up to 8 GiB; larger ones 5/8 of the driver's budget (ApplyThresholdOverrides).
     static constexpr u64 MaxCriticalMemory = 5_GiB;

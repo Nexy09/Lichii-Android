@@ -1,0 +1,144 @@
+name: Lichii Android Auto-Update & Optimized Build
+
+on:
+  schedule:
+    # Checks upstream zortos293/Lichii every 12 hours automatically
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force rebuild even if upstream tag has not changed'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches:
+      - lichii-android
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-auto-update
+  cancel-in-progress: false
+
+jobs:
+  sync-and-build-android:
+    name: Sync Upstream Lichii & Build Optimized Android APKs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Check Upstream zortos293/Lichii for New Release or Commits
+        id: upstream_check
+        run: |
+          git config user.name "Lichii Android Auto-Updater"
+          git config user.email "actions@github.com"
+
+          git remote add upstream https://github.com/zortos293/Lichii.git || \
+            git remote set-url upstream https://github.com/zortos293/Lichii.git
+          git fetch upstream nx2 --tags
+
+          UPSTREAM_TAG=$(git describe --tags --abbrev=0 upstream/nx2 2>/dev/null || echo "build-130")
+          UPSTREAM_SHA=$(git rev-parse --short upstream/nx2)
+          echo "upstream_tag=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
+          echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+
+          # Check if we already published a release for this tag in our repository
+          EXISTING_RELEASE=$(gh release view "${UPSTREAM_TAG}" --json tagName -q .tagName 2>/dev/null || echo "")
+          if [ -n "${EXISTING_RELEASE}" ] && [ "${{ github.event.inputs.force_build }}" != "true" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            echo "[=] Release ${UPSTREAM_TAG} is already built and published."
+          else
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "[*] Merging upstream/nx2 (${UPSTREAM_TAG} @ ${UPSTREAM_SHA}) and re-applying Android optimizations..."
+            git merge upstream/nx2 --no-edit -X ours || true
+            chmod +x scripts/apply-android-optimizations.sh
+            ./scripts/apply-android-optimizations.sh
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 17
+        if: steps.upstream_check.outputs.should_build == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK & NDK 28.2.13676358
+        if: steps.upstream_check.outputs.should_build == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK, CMake 3.31.5 & glslangValidator
+        if: steps.upstream_check.outputs.should_build == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools ninja-build ccache python3-pil
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.31.5"
+
+      - name: Cache CMake / CPM & Gradle Caches
+        if: steps.upstream_check.outputs.should_build == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.cache/ccache
+            .cache/cpm
+          key: lichii-android-arm64-${{ runner.os }}-${{ steps.upstream_check.outputs.upstream_tag }}
+          restore-keys: |
+            lichii-android-arm64-${{ runner.os }}-
+
+      - name: Build Optimized Lichii Android APKs (Standard & AnTuTu Spoof)
+        if: steps.upstream_check.outputs.should_build == 'true'
+        run: |
+          cd src/android
+          chmod +x ./gradlew
+
+          # 1. Standard package (io.github.zortos293.lichii)
+          ./gradlew --no-daemon \
+            "-PappId=io.github.zortos293.lichii" \
+            "-DCUSTOM_REPO=${{ github.repository }}" \
+            assembleMainlineRelease \
+            -x lintVitalMainlineRelease \
+            -x lintVitalAnalyzeMainlineRelease
+
+          APK_STD=$(find app/build/outputs/apk/mainline/release -name "*.apk" | head -n 1)
+          cp -v "$APK_STD" "${GITHUB_WORKSPACE}/lichii-android-arm64.apk"
+
+          # 2. Samsung Game GOS / AnTuTu Spoof package (com.antutu.ABenchMark)
+          ./gradlew --no-daemon \
+            "-PappId=com.antutu.ABenchMark" \
+            "-DCUSTOM_REPO=${{ github.repository }}" \
+            assembleMainlineRelease \
+            -x lintVitalMainlineRelease \
+            -x lintVitalAnalyzeMainlineRelease
+
+          APK_ANTUTU=$(find app/build/outputs/apk/mainline/release -name "*.apk" | head -n 1)
+          cp -v "$APK_ANTUTU" "${GITHUB_WORKSPACE}/lichii-android-arm64-antutu.apk"
+
+      - name: Publish GitHub Release for In-App Auto-Updater
+        if: steps.upstream_check.outputs.should_build == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.upstream_check.outputs.upstream_tag }}
+          name: "Lichii Android Optimized (${{ steps.upstream_check.outputs.upstream_tag }})"
+          body: |
+            ### Lichii Android ARM64 — Édition Optimisée (${{ steps.upstream_check.outputs.upstream_tag }})
+            Synchronisé automatiquement avec `zortos293/Lichii` (`nx2` @ `${{ steps.upstream_check.outputs.upstream_sha }}`) en conservant l'intégralité des optimisations C++ & Android :
+            - **CPU/JIT Dynarmic ARM64** : `Unsafe_ReducedErrorFP`, `Unsafe_InaccurateNaN`, `Unsafe_UnfuseFMA`, `Unsafe_IgnoreGlobalMonitor`, NCE 64-bit et `ExclusiveMonitor` lock-free ARM64.
+            - **GPU/Vulkan (Samsung S22 Ultra / Exynos 2200 Xclipse 920)** : Shaders asynchrones, `AstcRecompression::Uncompressed`, `VSyncMode::FifoRelaxed`, `use_optimized_vertex_buffers`, `skip_cpu_inner_invalidation`, seuils GC VRAM optimisés (1,5 Go Texture / 1 Go Buffer).
+            - **Formats Switch 1 & Switch 2** : Support complet `.nsp`, `.xci`, `.nca`, `.nro`, `.nso`, `.nup` et `.nx`.
+            - **Auto-Updater intégré** : Mise à jour transparente sans perte de données ni de shaders.
+          files: |
+            lichii-android-arm64.apk
+            lichii-android-arm64-antutu.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

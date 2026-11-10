@@ -51,6 +51,7 @@ import org.yuzu.yuzu_emu.features.settings.model.BooleanSetting
 import org.yuzu.yuzu_emu.YuzuApplication
 import org.yuzu.yuzu_emu.updater.APKDownloader
 import org.yuzu.yuzu_emu.updater.APKInstaller
+import org.yuzu.yuzu_emu.updater.AutoUpdateManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -163,19 +164,51 @@ class MainActivity : AppCompatActivity(), ThemeProvider {
         val firstTimeSetup = PreferenceManager.getDefaultSharedPreferences(applicationContext)
                 .getBoolean(Settings.PREF_FIRST_APP_LAUNCH, true)
 
-        if (!firstTimeSetup && NativeLibrary.isUpdateCheckerEnabled() && BooleanSetting.ENABLE_UPDATE_CHECKS.getBoolean()) {
-             checkForUpdates()
+        AutoUpdateManager.schedulePeriodicJob(this)
+        val triggeredFromNotification =
+            intent?.getBooleanExtra("trigger_auto_update_check", false) == true
+        if (triggeredFromNotification) {
+            intent?.removeExtra("trigger_auto_update_check")
+            checkForUpdates(manual = true)
+        } else if (!firstTimeSetup && AutoUpdateManager.shouldRunPeriodicCheck(this)) {
+            checkForUpdates(manual = false)
         }
         setInsets()
         applyFullscreenPreference()
     }
 
-    private fun checkForUpdates() {
+    fun openAutoUpdateSettings() {
+        AutoUpdateManager.showAutoUpdateSettingsDialog(this) {
+            checkForUpdates(manual = true)
+        }
+    }
+
+    fun checkForUpdates(manual: Boolean = false) {
         Thread {
-            val latestVersion = NativeLibrary.checkForUpdate()
+            val latestVersion = AutoUpdateManager.checkForUpdateBlocking(this)
             if (latestVersion != null) {
                 runOnUiThread {
-                    showUpdateDialog(latestVersion)
+                    if (!manual &&
+                        latestVersion.assets.isNotEmpty() &&
+                        AutoUpdateManager.isAutoDownloadInstallEnabled(this)
+                    ) {
+                        Toast.makeText(
+                            this,
+                            "Nouvelle version Lichii détectée (${latestVersion.title}) — Téléchargement automatique...",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        downloadAndInstallUpdate(latestVersion)
+                    } else {
+                        showUpdateDialog(latestVersion)
+                    }
+                }
+            } else if (manual) {
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Lichii est déjà à jour (${AutoUpdateManager.INSTALLED_BUILD_TAG})",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }.start()
@@ -199,6 +232,7 @@ class MainActivity : AppCompatActivity(), ThemeProvider {
                 dialog.dismiss()
             }
             .setNegativeButton(R.string.dont_show_again) { dialog, _ ->
+                AutoUpdateManager.setAutoUpdateEnabled(this, false)
                 BooleanSetting.ENABLE_UPDATE_CHECKS.setBoolean(false)
                 NativeConfig.saveGlobalConfig()
                 dialog.dismiss()

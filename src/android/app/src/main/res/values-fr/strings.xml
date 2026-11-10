@@ -4,8 +4,8 @@
     <string name="notice_notification_channel_name">Avis et erreurs</string>
     <string name="notice_notification_channel_description">Affiche des notifications en cas de problème.</string>
     <string name="notification_permission_not_granted">Permission de notification non accordée !</string>
-    <string name="app_notification_channel_description">Notifications de l\'émulateur Switch Eden</string>
-    <string name="app_notification_running">Eden est en cours d\'exécution</string>
+    <string name="app_notification_channel_description">Notifications de l\'émulateur Switch Lichii</string>
+    <string name="app_notification_running">Lichii est en cours d\'exécution</string>
     <string name="seconds">Secondes</string>
 
     <!-- Spinbox strings -->
@@ -1083,5 +1083,7 @@
     <string name="external_content">Contenu externe</string>
     <string name="add_folders">Ajouter un dossier</string>
     <string name="percent">%1$d%%</string>
+    <string name="auto_update_settings_title">Mises à jour automatiques (Lichii)</string>
+    <string name="auto_update_settings_description">Vérification périodique économe en batterie, protection Wi-Fi et installation auto</string>
 
 </resources>

@@ -211,14 +211,21 @@ class BufferCache : public VideoCommon::ChannelSetupCaches<BufferCacheChannelInf
     static constexpr bool SEPARATE_IMAGE_BUFFERS_BINDINGS = P::SEPARATE_IMAGE_BUFFER_BINDINGS;
     static constexpr bool USE_MEMORY_MAPS_FOR_UPLOADS = P::USE_MEMORY_MAPS_FOR_UPLOADS;
 
-#ifdef YUZU_LEGACY
+#if defined(__ANDROID__)
+    static constexpr s64 TARGET_THRESHOLD = 1_GiB;
+#elif defined(YUZU_LEGACY)
     static constexpr s64 TARGET_THRESHOLD = 3_GiB;
 #else
     static constexpr s64 TARGET_THRESHOLD = 4_GiB;
 #endif
 
+#ifdef __ANDROID__
+    static constexpr s64 DEFAULT_EXPECTED_MEMORY = 256_MiB;
+    static constexpr s64 DEFAULT_CRITICAL_MEMORY = 512_MiB;
+#else
     static constexpr s64 DEFAULT_EXPECTED_MEMORY = 512_MiB;
     static constexpr s64 DEFAULT_CRITICAL_MEMORY = 1_GiB;
+#endif
 
     // Debug Flags.
 

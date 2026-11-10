@@ -354,7 +354,11 @@ struct Values {
                                                         "resolution_setup", Category::Renderer};
 
     SwitchableSetting<VSyncMode, true> vsync_mode{linkage,
+#ifdef __ANDROID__
+                                                  VSyncMode::FifoRelaxed,
+#else
                                                   VSyncMode::Fifo,
+#endif
                                                   "use_vsync",
                                                   Category::Renderer,
                                                   Specialization::RuntimeList,
@@ -374,7 +378,11 @@ struct Values {
                                            true};
 
     SwitchableSetting<ScalingFilter> scaling_filter{linkage,
+#ifdef __ANDROID__
+                                                    ScalingFilter::Bilinear,
+#else
                                                     ScalingFilter::ScaleForce,
+#endif
                                                     "scaling_filter",
                                                     Category::Renderer,
                                                     Specialization::Default,
@@ -386,7 +394,7 @@ struct Values {
                                               Category::Renderer};
     SwitchableSetting<int, true> fsr_sharpening_slider{linkage,
 #ifdef __ANDROID__
-                                                       0,
+                                                       75,
 #else
                                                        25,
 #endif
@@ -423,7 +431,11 @@ struct Values {
                                                       true};
 
     SwitchableSetting<AntiAliasing> anti_aliasing{linkage,
+#ifdef __ANDROID__
+                                                  AntiAliasing::None,
+#else
                                                   AntiAliasing::Fxaa,
+#endif
                                                   "anti_aliasing",
                                                   Category::Renderer,
                                                   Specialization::Default,
@@ -451,7 +463,11 @@ struct Values {
                                                       true};
 
     SwitchableSetting<bool> post_shader_enabled{linkage,
+#ifdef __ANDROID__
+                                                false,
+#else
                                                 true,
+#endif
                                                 "post_shader_enabled",
                                                 Category::Renderer,
                                                 Specialization::Default,
@@ -630,7 +646,11 @@ struct Values {
     // BC3 by default: GPUs without ASTC otherwise keep ASTC textures as RGBA8, four times the
     // VRAM (Mario Kart World: 7.3-7.8 GB of an 8 GB card, the rest paged into system RAM).
     SwitchableSetting<AstcRecompression, true> astc_recompression{linkage,
+#ifdef __ANDROID__
+                                                                  AstcRecompression::Uncompressed,
+#else
                                                                   AstcRecompression::Bc3,
+#endif
                                                                   "astc_recompression",
                                                                   Category::RendererAdvanced};
 
@@ -717,7 +737,7 @@ struct Values {
 
 #ifdef __ANDROID__
     SwitchableSetting<bool> use_optimized_vertex_buffers{linkage,
-                                                 false,
+                                                 true,
                                                  "use_optimized_vertex_buffers",
                                                  Category::RendererAdvanced,
                                                  Specialization::Default,
@@ -735,7 +755,11 @@ struct Values {
                                           true};
 
     SwitchableSetting<bool> skip_cpu_inner_invalidation{linkage,
+#ifdef __ANDROID__
+                                                        true,
+#else
                                                         false,
+#endif
                                                         "skip_cpu_inner_invalidation",
                                                         Category::RendererHacks,
                                                         Specialization::Default,
@@ -755,7 +779,13 @@ struct Values {
     SwitchableSetting<bool> emulate_bgr565{linkage, false, "emulate_bgr565",
                                             Category::RendererHacks};
 
-    SwitchableSetting<bool> use_asynchronous_shaders{linkage, false, "use_asynchronous_shaders",
+    SwitchableSetting<bool> use_asynchronous_shaders{linkage,
+#ifdef __ANDROID__
+                                                     true,
+#else
+                                                     false,
+#endif
+                                                     "use_asynchronous_shaders",
                                                      Category::RendererHacks};
 
     SwitchableSetting<GpuUnswizzleSize> gpu_unswizzle_texture_size{linkage,
