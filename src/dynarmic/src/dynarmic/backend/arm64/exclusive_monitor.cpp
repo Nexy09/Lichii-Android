@@ -34,18 +34,18 @@ bool ExclusiveMonitor::CheckAndClear(std::size_t processor_id, VAddr address) {
     const VAddr masked_address = address & RESERVATION_GRANULE_MASK;
 
 #ifdef ARCHITECTURE_arm64
-    std::atomic_ref<VAddr> own{reservations[processor_id].address};
+    VAddr* own = &reservations[processor_id].address;
     VAddr expected = masked_address;
-    if (own.load(std::memory_order_relaxed) != masked_address ||
-        !own.compare_exchange_strong(expected, INVALID_EXCLUSIVE_ADDRESS, std::memory_order_acq_rel)) {
+    if (__atomic_load_n(own, __ATOMIC_RELAXED) != masked_address ||
+        !__atomic_compare_exchange_n(own, &expected, INVALID_EXCLUSIVE_ADDRESS, false,
+                                     __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) {
         return false;
     }
     for (Reservation& reservation : reservations) {
-        std::atomic_ref<VAddr> other{reservation.address};
-        if (other.load(std::memory_order_relaxed) == masked_address) {
+        if (__atomic_load_n(&reservation.address, __ATOMIC_RELAXED) == masked_address) {
             expected = masked_address;
-            other.compare_exchange_strong(expected, INVALID_EXCLUSIVE_ADDRESS,
-                                          std::memory_order_acq_rel);
+            __atomic_compare_exchange_n(&reservation.address, &expected, INVALID_EXCLUSIVE_ADDRESS, false,
+                                        __ATOMIC_ACQ_REL, __ATOMIC_RELAXED);
         }
     }
     return true;
@@ -68,7 +68,7 @@ bool ExclusiveMonitor::CheckAndClear(std::size_t processor_id, VAddr address) {
 void ExclusiveMonitor::Clear() {
 #ifdef ARCHITECTURE_arm64
     for (Reservation& other : reservations) {
-        std::atomic_ref<VAddr>{other.address}.store(INVALID_EXCLUSIVE_ADDRESS, std::memory_order_release);
+        __atomic_store_n(&other.address, INVALID_EXCLUSIVE_ADDRESS, __ATOMIC_RELEASE);
     }
 #else
     Lock();
@@ -81,7 +81,7 @@ void ExclusiveMonitor::Clear() {
 
 void ExclusiveMonitor::ClearProcessor(std::size_t processor_id) {
 #ifdef ARCHITECTURE_arm64
-    std::atomic_ref<VAddr>{reservations[processor_id].address}.store(INVALID_EXCLUSIVE_ADDRESS, std::memory_order_release);
+    __atomic_store_n(&reservations[processor_id].address, INVALID_EXCLUSIVE_ADDRESS, __ATOMIC_RELEASE);
 #else
     Lock();
     reservations[processor_id].address = INVALID_EXCLUSIVE_ADDRESS;
