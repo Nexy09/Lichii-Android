@@ -13,6 +13,7 @@ on:
         type: boolean
   push:
     branches:
+      - main
       - lichii-android
 
 permissions:
@@ -72,17 +73,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK & NDK 28.2.13676358
-        if: steps.upstream_check.outputs.should_build == 'true'
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK, CMake 3.31.5 & glslangValidator
+      - name: Install Android NDK 28.2, CMake 3.31.5 & glslangValidator
         if: steps.upstream_check.outputs.should_build == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y glslang-tools ninja-build ccache python3-pil
+          export ANDROID_SDK_ROOT="${ANDROID_HOME}"
+          export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
           yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.31.5"
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.31.5"
 
       - name: Cache CMake / CPM & Gradle Caches
         if: steps.upstream_check.outputs.should_build == 'true'
@@ -99,6 +98,8 @@ jobs:
       - name: Build Optimized Lichii Android APKs (Standard & AnTuTu Spoof)
         if: steps.upstream_check.outputs.should_build == 'true'
         run: |
+          export ANDROID_SDK_ROOT="${ANDROID_HOME}"
+          export PATH="${ANDROID_HOME}/cmake/3.31.5/bin:${PATH}"
           cd src/android
           chmod +x ./gradlew
 
