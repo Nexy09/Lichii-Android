@@ -58,60 +58,7 @@ endif()'''
 
 patch_file("CMakeLists.txt", patch_cmake)
 
-# 2. Android NDK 28 lock-free ARM64 ExclusiveMonitor intrinsics
-def patch_excl_h(text: str) -> str:
-    text = text.replace(
-        "std::atomic_ref<VAddr>{exclusive_addresses[processor_id]}.store(masked_address, std::memory_order_release);",
-        "__atomic_store_n(&this->exclusive_addresses[processor_id], masked_address, __ATOMIC_RELEASE);",
-    )
-    text = text.replace(
-        "__atomic_store_n(&exclusive_addresses[processor_id], masked_address, __ATOMIC_RELEASE);",
-        "__atomic_store_n(&this->exclusive_addresses[processor_id], masked_address, __ATOMIC_RELEASE);",
-    )
-    return text
-
-def patch_excl_cpp(text: str) -> str:
-    old_block = """    std::atomic_ref<VAddr> own{exclusive_addresses[processor_id]};
-    VAddr expected = masked_address;
-    if (own.load(std::memory_order_relaxed) != masked_address ||
-        !own.compare_exchange_strong(expected, INVALID_EXCLUSIVE_ADDRESS, std::memory_order_acq_rel)) {
-        return false;
-    }
-    for (VAddr& other_address : exclusive_addresses) {
-        std::atomic_ref<VAddr> other{other_address};
-        if (other.load(std::memory_order_relaxed) == masked_address) {
-            expected = masked_address;
-            other.compare_exchange_strong(expected, INVALID_EXCLUSIVE_ADDRESS,
-                                          std::memory_order_acq_rel);
-        }
-    }"""
-    new_block = """    VAddr* own = &exclusive_addresses[processor_id];
-    VAddr expected = masked_address;
-    if (__atomic_load_n(own, __ATOMIC_RELAXED) != masked_address ||
-        !__atomic_compare_exchange_n(own, &expected, INVALID_EXCLUSIVE_ADDRESS, false,
-                                     __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)) {
-        return false;
-    }
-    for (VAddr& other_address : exclusive_addresses) {
-        if (__atomic_load_n(&other_address, __ATOMIC_RELAXED) == masked_address) {
-            expected = masked_address;
-            __atomic_compare_exchange_n(&other_address, &expected, INVALID_EXCLUSIVE_ADDRESS, false,
-                                        __ATOMIC_ACQ_REL, __ATOMIC_RELAXED);
-        }
-    }"""
-    text = text.replace(old_block, new_block)
-    text = text.replace(
-        "std::atomic_ref<VAddr>{address}.store(INVALID_EXCLUSIVE_ADDRESS, std::memory_order_release);",
-        "__atomic_store_n(&address, INVALID_EXCLUSIVE_ADDRESS, __ATOMIC_RELEASE);",
-    )
-    text = text.replace(
-        "std::atomic_ref<VAddr>{exclusive_addresses[processor_id]}.store(INVALID_EXCLUSIVE_ADDRESS, std::memory_order_release);",
-        "__atomic_store_n(&exclusive_addresses[processor_id], INVALID_EXCLUSIVE_ADDRESS, __ATOMIC_RELEASE);",
-    )
-    return text
-
-patch_file("src/dynarmic/src/dynarmic/interface/exclusive_monitor.h", patch_excl_h)
-patch_file("src/dynarmic/src/dynarmic/backend/arm64/exclusive_monitor.cpp", patch_excl_cpp)
+# 2. Upstream nx2 includes per-core 64-byte aligned lock-free ExclusiveMonitor (PR #1331)
 
 # 3. Dynarmic ARM64/ARM32 JIT Unsafe_ReducedErrorFP & Unsafe_InaccurateNaN in Auto mode
 def patch_dyn64(text: str) -> str:

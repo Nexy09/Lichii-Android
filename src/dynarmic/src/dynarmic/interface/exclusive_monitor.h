@@ -23,24 +23,6 @@ using VAddr = std::uint64_t;
 using Vector = std::array<std::uint64_t, 2>;
 
 class ExclusiveMonitor {
-private:
-    static constexpr VAddr RESERVATION_GRANULE_MASK = 0xFFFF'FFFF'FFFF'FFFFull;
-    static constexpr VAddr INVALID_EXCLUSIVE_ADDRESS = 0xDEAD'DEAD'DEAD'DEADull;
-    static constexpr size_t MAX_NUM_CPU_CORES = 6; // Sync with src/core/hardware_properties
-    boost::container::static_vector<VAddr, MAX_NUM_CPU_CORES> exclusive_addresses;
-    boost::container::static_vector<Vector, MAX_NUM_CPU_CORES> exclusive_values;
-    SpinLock lock;
-
-    bool CheckAndClear(size_t processor_id, VAddr address);
-
-    void Lock();
-    void Unlock();
-
-    friend volatile int* GetExclusiveMonitorLockPointer(ExclusiveMonitor*);
-    friend size_t GetExclusiveMonitorProcessorCount(ExclusiveMonitor*);
-    friend VAddr* GetExclusiveMonitorAddressPointer(ExclusiveMonitor*, size_t index);
-    friend Vector* GetExclusiveMonitorValuePointer(ExclusiveMonitor*, size_t index);
-
 public:
     /// @param processor_count Maximum number of processors using this global
     ///                        exclusive monitor. Each processor must have a
@@ -57,14 +39,14 @@ public:
         const VAddr masked_address = address & RESERVATION_GRANULE_MASK;
 
 #ifdef ARCHITECTURE_arm64
-        __atomic_store_n(&this->exclusive_addresses[processor_id], masked_address, __ATOMIC_RELEASE);
+        std::atomic_ref<VAddr>{reservations[processor_id].address}.store(masked_address, std::memory_order_release);
         const T value = op();
-        std::memcpy(this->exclusive_values[processor_id].data(), &value, sizeof(T));
+        std::memcpy(reservations[processor_id].value.data(), &value, sizeof(T));
 #else
         Lock();
-        this->exclusive_addresses[processor_id] = masked_address;
+        reservations[processor_id].address = masked_address;
         const T value = op();
-        std::memcpy(this->exclusive_values[processor_id].data(), &value, sizeof(T));
+        std::memcpy(reservations[processor_id].value.data(), &value, sizeof(T));
         Unlock();
 #endif
         return value;
@@ -82,7 +64,7 @@ public:
         }
 
         T saved_value;
-        std::memcpy(&saved_value, this->exclusive_values[processor_id].data(), sizeof(T));
+        std::memcpy(&saved_value, reservations[processor_id].value.data(), sizeof(T));
         const bool result = op(saved_value);
 
 #ifndef ARCHITECTURE_arm64
@@ -95,6 +77,30 @@ public:
     void Clear();
     /// Unmark processor id
     void ClearProcessor(size_t processor_id);
+
+private:
+    bool CheckAndClear(size_t processor_id, VAddr address);
+
+    void Lock();
+    void Unlock();
+
+    friend volatile int* GetExclusiveMonitorLockPointer(ExclusiveMonitor*);
+    friend size_t GetExclusiveMonitorProcessorCount(ExclusiveMonitor*);
+    friend VAddr* GetExclusiveMonitorAddressPointer(ExclusiveMonitor*, size_t index);
+    friend Vector* GetExclusiveMonitorValuePointer(ExclusiveMonitor*, size_t index);
+
+    static constexpr VAddr RESERVATION_GRANULE_MASK = 0xFFFF'FFFF'FFFF'FFFFull;
+    static constexpr VAddr INVALID_EXCLUSIVE_ADDRESS = 0xDEAD'DEAD'DEAD'DEADull;
+    static constexpr size_t MAX_NUM_CPU_CORES = 6; // Sync with src/core/hardware_properties
+    /// A processor's reservation. Every exclusive load and store on that processor writes it, so
+    /// each has its own cache line: packed together, all six shared one or two lines, which
+    /// guest atomics on any two cores bounced between them.
+    struct alignas(64) Reservation {
+        VAddr address = INVALID_EXCLUSIVE_ADDRESS;
+        Vector value{};
+    };
+    boost::container::static_vector<Reservation, MAX_NUM_CPU_CORES> reservations;
+    SpinLock lock;
 };
 
 }  // namespace Dynarmic
