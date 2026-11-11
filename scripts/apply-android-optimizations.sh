@@ -60,10 +60,15 @@ patch_file("CMakeLists.txt", patch_cmake)
 
 # 2. Android NDK 28 lock-free ARM64 ExclusiveMonitor intrinsics
 def patch_excl_h(text: str) -> str:
-    return text.replace(
+    text = text.replace(
         "std::atomic_ref<VAddr>{exclusive_addresses[processor_id]}.store(masked_address, std::memory_order_release);",
-        "__atomic_store_n(&exclusive_addresses[processor_id], masked_address, __ATOMIC_RELEASE);",
+        "__atomic_store_n(&this->exclusive_addresses[processor_id], masked_address, __ATOMIC_RELEASE);",
     )
+    text = text.replace(
+        "__atomic_store_n(&exclusive_addresses[processor_id], masked_address, __ATOMIC_RELEASE);",
+        "__atomic_store_n(&this->exclusive_addresses[processor_id], masked_address, __ATOMIC_RELEASE);",
+    )
+    return text
 
 def patch_excl_cpp(text: str) -> str:
     old_block = """    std::atomic_ref<VAddr> own{exclusive_addresses[processor_id]};
