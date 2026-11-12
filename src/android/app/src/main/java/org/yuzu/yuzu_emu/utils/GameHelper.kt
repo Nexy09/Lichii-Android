@@ -18,6 +18,7 @@ import org.yuzu.yuzu_emu.YuzuApplication
 import org.yuzu.yuzu_emu.model.Game
 import org.yuzu.yuzu_emu.model.GameDir
 import org.yuzu.yuzu_emu.model.MinimalDocumentFile
+import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper
 import androidx.core.content.edit
 import androidx.core.net.toUri
 
@@ -261,6 +262,10 @@ object GameHelper {
         registerFilesystemProvider: Boolean = true
     ): Game? {
         val filePath = uri.toString()
+        val extension = FileUtil.getExtension(uri)
+        if (WiiUGameHelper.isWiiUExtension(extension)) {
+            return WiiUGameHelper.createWiiUGame(uri, filePath, extension, addedToLibrary)
+        }
         if (!GameMetadata.getIsValid(filePath)) {
             return null
         }

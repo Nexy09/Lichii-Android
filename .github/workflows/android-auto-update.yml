@@ -137,6 +137,7 @@ jobs:
             - **CPU/JIT Dynarmic ARM64** : `Unsafe_ReducedErrorFP`, `Unsafe_InaccurateNaN`, `Unsafe_UnfuseFMA`, `Unsafe_IgnoreGlobalMonitor`, NCE 64-bit et `ExclusiveMonitor` lock-free ARM64.
             - **GPU/Vulkan (Samsung S22 Ultra / Exynos 2200 Xclipse 920)** : Shaders asynchrones, `AstcRecompression::Uncompressed`, `VSyncMode::FifoRelaxed`, `use_optimized_vertex_buffers`, `skip_cpu_inner_invalidation`, seuils GC VRAM optimisés (1,5 Go Texture / 1 Go Buffer).
             - **Formats Switch 1 & Switch 2** : Support complet `.nsp`, `.xci`, `.nca`, `.nro`, `.nso`, `.nup` et `.nx`.
+            - **Console Nintendo Wii U intégrée (Moteur Hybride Cemu 2.6 + ARM64)** : Support natif `.wua`, `.wud`, `.wux`, `.rpx`, `.wuhb` directement depuis le frontend de Lichii, avec recompilateur JIT PowerPC tri-cœurs (`MulticoreRecompiler`, `threadQuantum = 100000`), rendu Vulkan Latte RDNA 2 (`AsyncShaderCompile`, `AccurateBarriers = false`, `TripleBuffering`), bascule instantanée TV / GamePad et 236 `gameProfiles` optimisés.
             - **Auto-Updater intégré** : Mise à jour transparente sans perte de données ni de shaders.
           files: |
             lichii-android-arm64.apk

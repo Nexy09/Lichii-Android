@@ -19,6 +19,7 @@ import org.yuzu.yuzu_emu.activities.EmulationActivity
 import org.yuzu.yuzu_emu.utils.DirectoryInitialization
 import org.yuzu.yuzu_emu.utils.FileUtil
 import org.yuzu.yuzu_emu.utils.NativeConfig
+import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -34,6 +35,9 @@ class Game(
 ) : Parcelable {
     val keyAddedToLibraryTime get() = "${path}_AddedToLibraryTime"
     val keyLastPlayedTime get() = "${path}_LastPlayed"
+
+    val isWiiU: Boolean
+        get() = WiiUGameHelper.isWiiUPath(path)
 
     val settingsName: String
         get() {
@@ -100,7 +104,7 @@ class Game(
 
     companion object {
         val extensions: Set<String> = HashSet(
-            listOf("xci", "nsp", "nca", "nro", "nsz", "xcz", "nup", "nx")
+            listOf("xci", "nsp", "nca", "nro", "nsz", "xcz", "nup", "nx", "wua", "wud", "wux", "rpx", "wuhb")
         )
     }
 }

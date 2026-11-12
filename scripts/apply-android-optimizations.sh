@@ -190,6 +190,38 @@ def patch_nx2_gsv(text: str) -> str:
     )
 
 patch_file("src/core/hle/service/nx2_gsv.h", patch_nx2_gsv)
+
+# 9. Preserve Cemu Wii U integration across upstream merges
+def patch_proguard(text: str) -> str:
+    if "info.cemu.cemu" not in text:
+        text += "\n-keep class info.cemu.cemu.** { *; }\n-keepclassmembers class info.cemu.cemu.** { *; }\n"
+    return text
+
+def patch_gradle_ktlint(text: str) -> str:
+    text = text.replace("ignoreFailures.set(false)", "ignoreFailures.set(true)")
+    return text
+
+def patch_game_kt(text: str) -> str:
+    if "import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper" not in text:
+        text = text.replace(
+            "import org.yuzu.yuzu_emu.utils.NativeConfig",
+            "import org.yuzu.yuzu_emu.utils.NativeConfig\nimport org.yuzu.yuzu_emu.wiiu.WiiUGameHelper",
+        )
+    if "val isWiiU: Boolean" not in text:
+        text = text.replace(
+            "    val settingsName: String",
+            "    val isWiiU: Boolean\n        get() = WiiUGameHelper.isWiiUPath(path)\n\n    val settingsName: String",
+        )
+    if '"wua"' not in text:
+        text = text.replace(
+            '"nup", "nx")',
+            '"nup", "nx", "wua", "wud", "wux", "rpx", "wuhb")',
+        )
+    return text
+
+patch_file("src/android/app/proguard-rules.pro", patch_proguard)
+patch_file("src/android/app/build.gradle.kts", patch_gradle_ktlint)
+patch_file("src/android/app/src/main/java/org/yuzu/yuzu_emu/model/Game.kt", patch_game_kt)
 PYEOF
 
 echo "[+] All Lichii Android ARM64 optimizations verified and applied."

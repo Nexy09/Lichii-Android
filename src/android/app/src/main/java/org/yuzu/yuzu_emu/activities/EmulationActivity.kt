@@ -125,6 +125,17 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
 
         super.onCreate(savedInstanceState)
 
+        val maybeWiiUGame = BundleCompat.getParcelable(
+            intent.extras ?: Bundle(),
+            EXTRA_SELECTED_GAME,
+            Game::class.java
+        )
+        if (maybeWiiUGame != null && maybeWiiUGame.isWiiU) {
+            WiiUEmulationActivity.launch(this, maybeWiiUGame)
+            finish()
+            return
+        }
+
         NativeConfig.reloadGlobalConfig()
 
         InputHandler.updateControllerData()

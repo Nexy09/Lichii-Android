@@ -27,6 +27,7 @@ import coil.request.Options
 import org.yuzu.yuzu_emu.R
 import org.yuzu.yuzu_emu.YuzuApplication
 import org.yuzu.yuzu_emu.model.Game
+import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -50,6 +51,10 @@ class GameIconFetcher(
     }
 
     private fun decodeGameIcon(game: Game): Bitmap? {
+        if (game.isWiiU) {
+            gameIconHashes[game.iconCacheKey()] = game.title.hashCode()
+            return WiiUGameHelper.generateWiiUIcon(game.title)
+        }
         val data = GameMetadata.getIcon(game.path)
         gameIconHashes[game.iconCacheKey()] = data.contentHashCode()
         return BitmapFactory.decodeByteArray(

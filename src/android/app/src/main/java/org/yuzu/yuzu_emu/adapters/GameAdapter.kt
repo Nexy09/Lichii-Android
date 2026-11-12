@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import org.yuzu.yuzu_emu.HomeNavigationDirections
 import org.yuzu.yuzu_emu.R
 import org.yuzu.yuzu_emu.YuzuApplication
+import org.yuzu.yuzu_emu.activities.WiiUEmulationActivity
 import org.yuzu.yuzu_emu.databinding.CardGameListBinding
 import org.yuzu.yuzu_emu.databinding.CardGameGridBinding
 import org.yuzu.yuzu_emu.databinding.CardGameCarouselBinding
@@ -253,6 +254,11 @@ class GameAdapter(private val activity: AppCompatActivity) :
                     )
                 }
 
+                if (game.isWiiU) {
+                    WiiUEmulationActivity.launch(activity, game)
+                    return@launch
+                }
+
                 activity.lifecycleScope.launch {
                     withContext(Dispatchers.IO) {
                         val shortcut =
@@ -272,7 +278,7 @@ class GameAdapter(private val activity: AppCompatActivity) :
                 binding.root.findNavController().navigate(action)
             }
 
-            if (NativeLibrary.gameRequiresFirmware(game.programId) && !NativeLibrary.isFirmwareAvailable()) {
+            if (!game.isWiiU && NativeLibrary.gameRequiresFirmware(game.programId) && !NativeLibrary.isFirmwareAvailable()) {
                 MaterialAlertDialogBuilder(activity)
                     .setTitle(R.string.loader_requires_firmware)
                     .setMessage(

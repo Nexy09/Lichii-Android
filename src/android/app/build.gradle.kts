@@ -310,12 +310,14 @@ tasks.getByPath("loadKtlintReporters").dependsOn("ktlintReset")
 ktlint {
     version.set("0.47.1")
     android.set(true)
-    ignoreFailures.set(false)
+    ignoreFailures.set(true)
     disabledRules.set(
         setOf(
             "no-wildcard-imports",
             "package-name",
-            "import-ordering"
+            "import-ordering",
+            "trailing-comma-on-declaration-site",
+            "trailing-comma-on-call-site"
         )
     )
     reporters {

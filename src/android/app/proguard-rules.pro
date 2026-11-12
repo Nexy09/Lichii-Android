@@ -12,6 +12,9 @@
 -keep class org.libsdl.app.** { *; }
 -keepclassmembers class org.libsdl.app.** { *; }
 
+-keep class info.cemu.cemu.** { *; }
+-keepclassmembers class info.cemu.cemu.** { *; }
+
 # Suppress warnings for R8
 -dontwarn org.bouncycastle.jsse.BCSSLParameters
 -dontwarn org.bouncycastle.jsse.BCSSLSocket
