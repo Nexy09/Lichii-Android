@@ -20,6 +20,7 @@ import org.yuzu.yuzu_emu.utils.DirectoryInitialization
 import org.yuzu.yuzu_emu.utils.FileUtil
 import org.yuzu.yuzu_emu.utils.NativeConfig
 import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper
+import org.yuzu.yuzu_emu.dolphin.DolphinGameHelper
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -38,6 +39,23 @@ class Game(
 
     val isWiiU: Boolean
         get() = WiiUGameHelper.isWiiUPath(path)
+
+    val isGameCube: Boolean
+        get() = DolphinGameHelper.isGameCubePath(path)
+
+    val isWii: Boolean
+        get() = DolphinGameHelper.isWiiPath(path)
+
+    val isSwitch: Boolean
+        get() = !isWiiU && !isGameCube && !isWii
+
+    val consoleName: String
+        get() = when {
+            isWiiU -> "Nintendo Wii U"
+            isGameCube -> "Nintendo GameCube"
+            isWii -> "Nintendo Wii"
+            else -> "Nintendo Switch"
+        }
 
     val settingsName: String
         get() {
@@ -104,7 +122,11 @@ class Game(
 
     companion object {
         val extensions: Set<String> = HashSet(
-            listOf("xci", "nsp", "nca", "nro", "nsz", "xcz", "nup", "nx", "wua", "wud", "wux", "rpx", "wuhb")
+            listOf(
+                "xci", "nsp", "nca", "nro", "nsz", "xcz", "nup", "nx",
+                "wua", "wud", "wux", "rpx", "wuhb",
+                "iso", "gcm", "gcz", "ciso", "wbfs", "rvz", "wia", "wad", "dol", "elf"
+            )
         )
     }
 }

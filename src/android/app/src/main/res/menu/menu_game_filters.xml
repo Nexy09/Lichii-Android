@@ -1,14 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <group android:checkableBehavior="single">
-        <item android:id="@+id/alphabetical"
-            android:title="@string/alphabetical"
-            android:checked="true"/>
-        <item
-            android:id="@+id/filter_recently_played"
-            android:title="@string/search_recently_played" />
-        <item
-            android:id="@+id/filter_recently_added"
-            android:title="@string/search_recently_added" />
-    </group>
+    <item
+        android:id="@+id/submenu_consoles"
+        android:title="@string/filter_by_console">
+        <menu>
+            <group
+                android:id="@+id/group_consoles"
+                android:checkableBehavior="single">
+                <item
+                    android:id="@+id/filter_console_all"
+                    android:title="@string/console_filter_all"
+                    android:checked="true" />
+                <item
+                    android:id="@+id/filter_console_switch"
+                    android:title="@string/console_filter_switch" />
+                <item
+                    android:id="@+id/filter_console_wiiu"
+                    android:title="@string/console_filter_wii_u" />
+                <item
+                    android:id="@+id/filter_console_gamecube"
+                    android:title="@string/console_filter_gamecube" />
+                <item
+                    android:id="@+id/filter_console_wii"
+                    android:title="@string/console_filter_wii" />
+            </group>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/submenu_sort"
+        android:title="@string/sort_by">
+        <menu>
+            <group
+                android:id="@+id/group_sort"
+                android:checkableBehavior="single">
+                <item
+                    android:id="@+id/alphabetical"
+                    android:title="@string/alphabetical"
+                    android:checked="true" />
+                <item
+                    android:id="@+id/filter_recently_played"
+                    android:title="@string/search_recently_played" />
+                <item
+                    android:id="@+id/filter_recently_added"
+                    android:title="@string/search_recently_added" />
+            </group>
+        </menu>
+    </item>
 </menu>

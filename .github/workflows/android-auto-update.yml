@@ -136,12 +136,13 @@ jobs:
           name: "Lichii Android Optimized (${{ steps.upstream_check.outputs.upstream_tag }})"
           body: |
             ### Lichii Android ARM64 — Édition Optimisée (${{ steps.upstream_check.outputs.upstream_tag }})
-            Synchronisé automatiquement avec `zortos293/Lichii` (`nx2` @ `${{ steps.upstream_check.outputs.upstream_sha }}`) avec intégration native Cemu 2.6 (Wii U) et optimisations complètes :
+            Synchronisé automatiquement avec `zortos293/Lichii` (`nx2` @ `${{ steps.upstream_check.outputs.upstream_sha }}`) avec intégration Cemu 2.6 (Wii U), Dolphin 2609b (GameCube & Wii) et filtrage multi-consoles :
+            - **Filtrage Multi-Consoles & Ludothèque Universelle** : Bascule instantanée entre la vue globale "Tous les jeux" (Switch + Wii U + GameCube + Wii dans la même section) et les filtres dédiés par console ("Nintendo Switch", "Nintendo Wii U", "Nintendo GameCube", "Nintendo Wii") avec compteurs en temps réel.
+            - **Intégration GameCube & Wii (Moteur Dolphin 2609b AArch64)** : Support natif des images et fichiers `.iso`, `.gcm`, `.gcz`, `.ciso`, `.wbfs`, `.rvz`, `.wia`, `.wad`, `.dol` et `.elf`, détection matérielle des en-têtes (magic `0xC2339F3D` vs `0x5D1C9EA3`), génération dynamique de badges (Indigo pour GC, Cyan pour Wii) et lanceur optimisé.
             - **Moteur Wii U Hybride (Cemu 2.6 + ARM64)** : Prise en charge native des titres Wii U (`.wua`, `.wud`, `.wux`, `.rpx`, `.wuhb`), injection automatique de 236 profils `gameProfiles` optimisés (MulticoreRecompiler, quantum 100 000), overlay manette tactile Wii U GamePad et accélération matérielle RDNA 2 (AccurateBarriers OFF, AsyncShaderCompile ON).
             - **CPU/JIT Dynarmic ARM64 (Switch)** : `Unsafe_ReducedErrorFP`, `Unsafe_InaccurateNaN`, `Unsafe_UnfuseFMA`, `Unsafe_IgnoreGlobalMonitor`, NCE 64-bit et `ExclusiveMonitor` lock-free ARM64.
             - **GPU/Vulkan (Samsung S22 Ultra / Exynos 2200 Xclipse 920)** : Shaders asynchrones, `AstcRecompression::Uncompressed`, `VSyncMode::FifoRelaxed`, `use_optimized_vertex_buffers`, `skip_cpu_inner_invalidation`, seuils GC VRAM optimisés (1,5 Go Texture / 1 Go Buffer).
             - **Formats Switch 1 & Switch 2** : Support complet `.nsp`, `.xci`, `.nca`, `.nro`, `.nso`, `.nup` et `.nx`.
-            - **Console Nintendo Wii U intégrée (Moteur Hybride Cemu 2.6 + ARM64)** : Support natif `.wua`, `.wud`, `.wux`, `.rpx`, `.wuhb` directement depuis le frontend de Lichii, avec recompilateur JIT PowerPC tri-cœurs (`MulticoreRecompiler`, `threadQuantum = 100000`), rendu Vulkan Latte RDNA 2 (`AsyncShaderCompile`, `AccurateBarriers = false`, `TripleBuffering`), bascule instantanée TV / GamePad et 236 `gameProfiles` optimisés.
             - **Auto-Updater intégré** : Mise à jour transparente sans perte de données ni de shaders.
           files: |
             lichii-android-arm64.apk

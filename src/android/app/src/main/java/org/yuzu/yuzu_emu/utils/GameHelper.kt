@@ -19,6 +19,7 @@ import org.yuzu.yuzu_emu.model.Game
 import org.yuzu.yuzu_emu.model.GameDir
 import org.yuzu.yuzu_emu.model.MinimalDocumentFile
 import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper
+import org.yuzu.yuzu_emu.dolphin.DolphinGameHelper
 import androidx.core.content.edit
 import androidx.core.net.toUri
 
@@ -265,6 +266,9 @@ object GameHelper {
         val extension = FileUtil.getExtension(uri)
         if (WiiUGameHelper.isWiiUExtension(extension)) {
             return WiiUGameHelper.createWiiUGame(uri, filePath, extension, addedToLibrary)
+        }
+        if (DolphinGameHelper.isDolphinExtension(extension)) {
+            return DolphinGameHelper.createDolphinGame(uri, filePath, extension, addedToLibrary)
         }
         if (!GameMetadata.getIsValid(filePath)) {
             return null

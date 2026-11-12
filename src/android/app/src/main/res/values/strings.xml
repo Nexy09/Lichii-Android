@@ -1890,4 +1890,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     <string name="auto_update_settings_title">Auto-Update (Lichii)</string>
     <string name="auto_update_settings_description">Configure periodic battery-saving update checks, Wi-Fi guard, and automatic APK installation</string>
 
+    <string name="console_filter_all">Tous les jeux (Toutes les consoles)</string>
+    <string name="console_filter_switch">Nintendo Switch</string>
+    <string name="console_filter_wii_u">Nintendo Wii U</string>
+    <string name="console_filter_gamecube">Nintendo GameCube</string>
+    <string name="console_filter_wii">Nintendo Wii</string>
+    <string name="filter_by_console">Filtrer par console</string>
+    <string name="sort_by">Trier par</string>
+    <string name="filter_dialog_title">Filtrage de la ludothèque</string>
+
 </resources>

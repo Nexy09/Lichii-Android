@@ -66,6 +66,7 @@ class GamesFragment : Fragment() {
     companion object {
         private const val SEARCH_TEXT = "SearchText"
         private const val PREF_SORT_TYPE = "GamesSortType"
+        private const val PREF_CONSOLE_FILTER = "GamesConsoleFilter"
     }
 
     private val gamesViewModel: GamesViewModel by activityViewModels()
@@ -204,7 +205,8 @@ class GamesFragment : Fragment() {
             recycledViewPool.clear()
 
             gameAdapter.setViewType(savedViewType)
-            currentFilter = preferences.getInt(PREF_SORT_TYPE, View.NO_ID)
+            currentSort = preferences.getInt(PREF_SORT_TYPE, R.id.alphabetical)
+            currentConsoleFilter = preferences.getInt(PREF_CONSOLE_FILTER, R.id.filter_console_all)
 
             // Set the correct layout manager
             layoutManager = when (savedViewType) {
@@ -256,19 +258,21 @@ class GamesFragment : Fragment() {
     }
 
     private var lastSearchText: String = ""
-    private var lastFilter: Int = preferences.getInt(PREF_SORT_TYPE, View.NO_ID)
+    private var lastSort: Int = preferences.getInt(PREF_SORT_TYPE, R.id.alphabetical)
+    private var lastConsoleFilter: Int = preferences.getInt(PREF_CONSOLE_FILTER, R.id.filter_console_all)
 
     private fun setAdapter(games: List<Game>) {
         val currentSearchText = binding.searchText.text.toString()
-        val currentFilter = binding.filterButton.id
 
         val searchChanged = currentSearchText != lastSearchText
-        val filterChanged = currentFilter != lastFilter
+        val sortChanged = currentSort != lastSort
+        val consoleChanged = currentConsoleFilter != lastConsoleFilter
 
-        if (searchChanged || filterChanged) {
+        if (searchChanged || sortChanged || consoleChanged) {
             filterAndSearch(games)
             lastSearchText = currentSearchText
-            lastFilter = currentFilter
+            lastSort = currentSort
+            lastConsoleFilter = currentConsoleFilter
         } else {
             submitGameList(games)
             gamesViewModel.setFilteredGames(games)
@@ -395,71 +399,141 @@ class GamesFragment : Fragment() {
         popup.show()
     }
 
+    private var currentSort: Int = R.id.alphabetical
+    private var currentConsoleFilter: Int = R.id.filter_console_all
+
     private fun showFilterMenu(anchor: View) {
+        val allGames = gamesViewModel.games.value
+        val switchCount = allGames.count { it.isSwitch }
+        val wiiuCount = allGames.count { it.isWiiU }
+        val gcCount = allGames.count { it.isGameCube }
+        val wiiCount = allGames.count { it.isWii }
+        val totalCount = allGames.size
+
+        val consoleOptions = arrayOf(
+            "🌟 Toutes les consoles ($totalCount)",
+            "🔴 Nintendo Switch ($switchCount)",
+            "🔵 Nintendo Wii U ($wiiuCount)",
+            "🟣 Nintendo GameCube ($gcCount)",
+            "⚪ Nintendo Wii ($wiiCount)"
+        )
+
+        val selectedIndex = when (currentConsoleFilter) {
+            R.id.filter_console_switch -> 1
+            R.id.filter_console_wiiu -> 2
+            R.id.filter_console_gamecube -> 3
+            R.id.filter_console_wii -> 4
+            else -> 0
+        }
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.filter_dialog_title)
+            .setSingleChoiceItems(consoleOptions, selectedIndex) { dialog, which ->
+                currentConsoleFilter = when (which) {
+                    1 -> R.id.filter_console_switch
+                    2 -> R.id.filter_console_wiiu
+                    3 -> R.id.filter_console_gamecube
+                    4 -> R.id.filter_console_wii
+                    else -> R.id.filter_console_all
+                }
+                preferences.edit { putInt(PREF_CONSOLE_FILTER, currentConsoleFilter) }
+                filterAndSearch()
+                dialog.dismiss()
+            }
+            .setNeutralButton("Options de tri...") { _, _ ->
+                showSortMenu(anchor)
+            }
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun showSortMenu(anchor: View) {
         val popup = PopupMenu(requireContext(), anchor)
         popup.menuInflater.inflate(R.menu.menu_game_filters, popup.menu)
 
-        // Set checked state based on current filter
-        when (currentFilter) {
-            R.id.alphabetical -> popup.menu.findItem(R.id.alphabetical).isChecked = true
-            R.id.filter_recently_played -> popup.menu.findItem(R.id.filter_recently_played).isChecked =
-                true
-
-            R.id.filter_recently_added -> popup.menu.findItem(R.id.filter_recently_added).isChecked =
-                true
+        // Set checked state for sort and console
+        when (currentSort) {
+            R.id.alphabetical -> popup.menu.findItem(R.id.alphabetical)?.isChecked = true
+            R.id.filter_recently_played -> popup.menu.findItem(R.id.filter_recently_played)?.isChecked = true
+            R.id.filter_recently_added -> popup.menu.findItem(R.id.filter_recently_added)?.isChecked = true
+        }
+        when (currentConsoleFilter) {
+            R.id.filter_console_switch -> popup.menu.findItem(R.id.filter_console_switch)?.isChecked = true
+            R.id.filter_console_wiiu -> popup.menu.findItem(R.id.filter_console_wiiu)?.isChecked = true
+            R.id.filter_console_gamecube -> popup.menu.findItem(R.id.filter_console_gamecube)?.isChecked = true
+            R.id.filter_console_wii -> popup.menu.findItem(R.id.filter_console_wii)?.isChecked = true
+            else -> popup.menu.findItem(R.id.filter_console_all)?.isChecked = true
         }
 
         popup.setOnMenuItemClickListener { item ->
-            currentFilter = item.itemId
-            preferences.edit { putInt(PREF_SORT_TYPE, currentFilter) }
-            filterAndSearch()
-            true
+            when (item.itemId) {
+                R.id.alphabetical, R.id.filter_recently_played, R.id.filter_recently_added -> {
+                    currentSort = item.itemId
+                    preferences.edit { putInt(PREF_SORT_TYPE, currentSort) }
+                    filterAndSearch()
+                    true
+                }
+                R.id.filter_console_all, R.id.filter_console_switch, R.id.filter_console_wiiu,
+                R.id.filter_console_gamecube, R.id.filter_console_wii -> {
+                    currentConsoleFilter = item.itemId
+                    preferences.edit { putInt(PREF_CONSOLE_FILTER, currentConsoleFilter) }
+                    filterAndSearch()
+                    true
+                }
+                else -> false
+            }
         }
-
         popup.show()
     }
 
-    // Track current filter
-    private var currentFilter = View.NO_ID
-
     private fun filterAndSearch(baseList: List<Game> = gamesViewModel.games.value) {
-        val filteredList: List<Game> = when (currentFilter) {
-            R.id.alphabetical -> baseList.sortedBy { it.title }
+        // 1. Filtrage par console
+        val consoleFilteredList: List<Game> = when (currentConsoleFilter) {
+            R.id.filter_console_switch -> baseList.filter { it.isSwitch }
+            R.id.filter_console_wiiu -> baseList.filter { it.isWiiU }
+            R.id.filter_console_gamecube -> baseList.filter { it.isGameCube }
+            R.id.filter_console_wii -> baseList.filter { it.isWii }
+            else -> baseList // Toutes les consoles dans la même section !
+        }
+
+        // 2. Tri
+        val sortedList: List<Game> = when (currentSort) {
+            R.id.alphabetical -> consoleFilteredList.sortedBy { it.title.lowercase(Locale.getDefault()) }
             R.id.filter_recently_played -> {
-                baseList.filter {
+                consoleFilteredList.filter {
                     val lastPlayedTime = preferences.getLong(it.keyLastPlayedTime, 0L)
                     lastPlayedTime > (System.currentTimeMillis() - 24 * 60 * 60 * 1000)
                 }.sortedByDescending { preferences.getLong(it.keyLastPlayedTime, 0L) }
             }
             R.id.filter_recently_added -> {
-                baseList.filter {
+                consoleFilteredList.filter {
                     val addedTime = preferences.getLong(it.keyAddedToLibraryTime, 0L)
                     addedTime > (System.currentTimeMillis() - 24 * 60 * 60 * 1000)
                 }.sortedByDescending { preferences.getLong(it.keyAddedToLibraryTime, 0L) }
             }
-            else -> baseList
+            else -> consoleFilteredList
         }
 
         val searchTerm = binding.searchText.text.toString().lowercase(Locale.getDefault())
         if (searchTerm.isEmpty()) {
-            submitGameList(filteredList)
-            gamesViewModel.setFilteredGames(filteredList)
+            submitGameList(sortedList)
+            gamesViewModel.setFilteredGames(sortedList)
             return
         }
 
         val searchAlgorithm = if (searchTerm.length > 1) Jaccard(2) else JaroWinkler()
-        val sortedList = filteredList.mapNotNull { game ->
+        val searchMatchedList = sortedList.mapNotNull { game ->
             val title = game.title.lowercase(Locale.getDefault())
             val score = searchAlgorithm.similarity(searchTerm, title)
-            if (score > 0.03) {
+            if (score > 0.03 || title.contains(searchTerm)) {
                 ScoredGame(score, game)
             } else {
                 null
             }
         }.sortedByDescending { it.score }.map { it.item }
 
-        submitGameList(sortedList)
-        gamesViewModel.setFilteredGames(sortedList)
+        submitGameList(searchMatchedList)
+        gamesViewModel.setFilteredGames(searchMatchedList)
     }
 
     private inner class ScoredGame(val score: Double, val item: Game)

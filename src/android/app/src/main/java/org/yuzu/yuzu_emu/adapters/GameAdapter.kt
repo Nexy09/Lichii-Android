@@ -25,6 +25,7 @@ import org.yuzu.yuzu_emu.HomeNavigationDirections
 import org.yuzu.yuzu_emu.R
 import org.yuzu.yuzu_emu.YuzuApplication
 import org.yuzu.yuzu_emu.activities.WiiUEmulationActivity
+import org.yuzu.yuzu_emu.activities.DolphinEmulationActivity
 import org.yuzu.yuzu_emu.databinding.CardGameListBinding
 import org.yuzu.yuzu_emu.databinding.CardGameGridBinding
 import org.yuzu.yuzu_emu.databinding.CardGameCarouselBinding
@@ -256,6 +257,8 @@ class GameAdapter(private val activity: AppCompatActivity) :
 
                 if (game.isWiiU) {
                     WiiUEmulationActivity.launch(activity, game)
+                } else if (game.isGameCube || game.isWii) {
+                    DolphinEmulationActivity.launch(activity, game)
                 } else {
                     activity.lifecycleScope.launch {
                         withContext(Dispatchers.IO) {
@@ -277,7 +280,8 @@ class GameAdapter(private val activity: AppCompatActivity) :
                 }
             }
 
-            if (!game.isWiiU && NativeLibrary.gameRequiresFirmware(game.programId) && !NativeLibrary.isFirmwareAvailable()) {
+            val isNonSwitch = game.isWiiU || game.isGameCube || game.isWii
+            if (!isNonSwitch && NativeLibrary.gameRequiresFirmware(game.programId) && !NativeLibrary.isFirmwareAvailable()) {
                 MaterialAlertDialogBuilder(activity)
                     .setTitle(R.string.loader_requires_firmware)
                     .setMessage(

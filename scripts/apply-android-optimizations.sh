@@ -222,17 +222,37 @@ def patch_game_kt(text: str) -> str:
     if "import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper" not in text:
         text = text.replace(
             "import org.yuzu.yuzu_emu.utils.NativeConfig",
-            "import org.yuzu.yuzu_emu.utils.NativeConfig\nimport org.yuzu.yuzu_emu.wiiu.WiiUGameHelper",
+            "import org.yuzu.yuzu_emu.utils.NativeConfig\nimport org.yuzu.yuzu_emu.wiiu.WiiUGameHelper\nimport org.yuzu.yuzu_emu.dolphin.DolphinGameHelper",
         )
     if "val isWiiU: Boolean" not in text:
         text = text.replace(
             "    val settingsName: String",
-            "    val isWiiU: Boolean\n        get() = WiiUGameHelper.isWiiUPath(path)\n\n    val settingsName: String",
+            """    val isWiiU: Boolean
+        get() = WiiUGameHelper.isWiiUPath(path)
+
+    val isGameCube: Boolean
+        get() = DolphinGameHelper.isGameCubePath(path)
+
+    val isWii: Boolean
+        get() = DolphinGameHelper.isWiiPath(path)
+
+    val isSwitch: Boolean
+        get() = !isWiiU && !isGameCube && !isWii
+
+    val consoleName: String
+        get() = when {
+            isWiiU -> "Nintendo Wii U"
+            isGameCube -> "Nintendo GameCube"
+            isWii -> "Nintendo Wii"
+            else -> "Nintendo Switch"
+        }
+
+    val settingsName: String""",
         )
-    if '"wua"' not in text:
+    if '"iso"' not in text:
         text = text.replace(
-            '"nup", "nx")',
-            '"nup", "nx", "wua", "wud", "wux", "rpx", "wuhb")',
+            '"wuhb")',
+            '"wuhb", "iso", "gcm", "gcz", "ciso", "wbfs", "rvz", "wia", "wad", "dol", "elf")',
         )
     return text
 

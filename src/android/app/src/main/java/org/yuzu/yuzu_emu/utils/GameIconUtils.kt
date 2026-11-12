@@ -28,6 +28,7 @@ import org.yuzu.yuzu_emu.R
 import org.yuzu.yuzu_emu.YuzuApplication
 import org.yuzu.yuzu_emu.model.Game
 import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper
+import org.yuzu.yuzu_emu.dolphin.DolphinGameHelper
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -54,6 +55,14 @@ class GameIconFetcher(
         if (game.isWiiU) {
             gameIconHashes[game.iconCacheKey()] = game.title.hashCode()
             return WiiUGameHelper.generateWiiUIcon(game.title)
+        }
+        if (game.isGameCube) {
+            gameIconHashes[game.iconCacheKey()] = game.title.hashCode()
+            return DolphinGameHelper.generateGameCubeIcon(game.title)
+        }
+        if (game.isWii) {
+            gameIconHashes[game.iconCacheKey()] = game.title.hashCode()
+            return DolphinGameHelper.generateWiiIcon(game.title)
         }
         val data = GameMetadata.getIcon(game.path)
         gameIconHashes[game.iconCacheKey()] = data.contentHashCode()
