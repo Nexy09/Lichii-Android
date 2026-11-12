@@ -211,6 +211,11 @@ def patch_proguard(text: str) -> str:
 
 def patch_gradle_ktlint(text: str) -> str:
     text = text.replace("ignoreFailures.set(false)", "ignoreFailures.set(true)")
+    if 'jniLibs.pickFirsts.add("lib/*/*.so")' not in text:
+        text = text.replace(
+            "jniLibs.useLegacyPackaging = true",
+            'jniLibs.useLegacyPackaging = true\n        jniLibs.pickFirsts.add("lib/*/*.so")',
+        )
     return text
 
 def patch_game_kt(text: str) -> str:

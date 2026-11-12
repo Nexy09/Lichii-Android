@@ -106,6 +106,7 @@ jobs:
           # 1. Standard package (io.github.zortos293.lichii)
           ./gradlew --no-daemon \
             "-PappId=io.github.zortos293.lichii" \
+            "-PYUZU_ANDROID_ARGS=-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache" \
             "-DCUSTOM_REPO=${{ github.repository }}" \
             assembleMainlineRelease \
             -x lintVitalMainlineRelease \
@@ -117,6 +118,7 @@ jobs:
           # 2. Samsung Game GOS / AnTuTu Spoof package (com.antutu.ABenchMark)
           ./gradlew --no-daemon \
             "-PappId=com.antutu.ABenchMark" \
+            "-PYUZU_ANDROID_ARGS=-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache" \
             "-DCUSTOM_REPO=${{ github.repository }}" \
             assembleMainlineRelease \
             -x lintVitalMainlineRelease \

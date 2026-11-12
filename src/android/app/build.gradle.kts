@@ -57,6 +57,7 @@ android {
     packaging {
         // This is necessary for libadrenotools custom driver loading
         jniLibs.useLegacyPackaging = true
+        jniLibs.pickFirsts.add("lib/*/*.so")
     }
 
     androidResources {
