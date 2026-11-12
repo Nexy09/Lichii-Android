@@ -44,6 +44,8 @@ add_library(
     demangle.h
     device_power_state.cpp
     device_power_state.h
+    display_hdr.cpp
+    display_hdr.h
     div_ceil.h
     dkb_cpu_trace.cpp
     dkb_cpu_trace.h
@@ -71,6 +73,8 @@ add_library(
     fs/fs_util.h
     fs/path_util.cpp
     fs/path_util.h
+    fs/profile_migration.cpp
+    fs/profile_migration.h
     hash.h
     heap_tracker.cpp
     heap_tracker.h
@@ -101,6 +105,8 @@ add_library(
     range_mutex.h
     range_sets.h
     range_sets.inc
+    recommended_settings.cpp
+    recommended_settings.h
     ring_buffer.h
     ${CMAKE_CURRENT_BINARY_DIR}/scm_rev.cpp
     scm_rev.h
@@ -159,6 +165,8 @@ add_library(
     cpu_features.h
     httplib.h
     net/net.h net/net.cpp
+    nextendo.cpp
+    nextendo.h
     container/unordered_map.h container/unordered_set.h)
 
 # The ZBIC decoder runs once per module at load, so a profile buys it nothing, and the aarch64
@@ -171,7 +179,7 @@ set_source_files_properties(zbic_compression.cpp PROPERTIES
 if(WIN32)
     target_sources(common PRIVATE windows/timer_resolution.cpp
         windows/timer_resolution.h)
-    target_link_libraries(common PRIVATE ntdll)
+    target_link_libraries(common PRIVATE dxgi ntdll)
 endif()
 
 if(NOT WIN32)
@@ -253,7 +261,7 @@ if (BOOST_NO_HEADERS)
 else()
     target_link_libraries(common PUBLIC Boost::headers)
 endif()
-target_link_libraries(common PRIVATE OpenSSL::SSL)
+target_link_libraries(common PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 target_link_libraries(common PUBLIC Boost::filesystem Boost::context httplib::httplib nlohmann_json::nlohmann_json)
 
 if (lz4_ADDED)

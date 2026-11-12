@@ -28,6 +28,19 @@ Users report game bugs with Lichii logs (`eden_log.txt`, `eden_log.txt.old`). Ea
 | 0400D1D02399A000 | The Duskbloods network test |
 | 0400486024DEC000 | The Legend of Zelda: Ocarina of Time |
 | 0400245021D2C000 | Yoshi and the Mysterious Book |
+| 0400DDB020648000 | Cyberpunk 2077: Ultimate Edition |
+| 0100606026F12000 | Final Fantasy Resonance |
+| 010019A01E2F2000 | Metroid Prime 4: Beyond - Nintendo Switch 2 Edition |
+| 0100152000022000 | Mario Kart 8 Deluxe (Switch 1) |
+| 040032B023CA4000 | Orbitals |
+| 0400921025B32000 | Sonic Frontiers (Switch 2 Edition) |
+| 04003F40232DE000 | Hyrule Warriors: Age of Imprisonment |
+| 040015100B514001 | Super Mario Bros. Wonder - Nintendo Switch 2 Edition + Meetup in Bellabel Park |
+| 01004D300C5AE000 | Kirby and the Forgotten Land (Switch 1) |
+| 01007EF00011E000 | The Legend of Zelda: Breath of the Wild (Switch 1) |
+| 0100F2C0115B6000 | The Legend of Zelda: Tears of the Kingdom (Switch 1) |
+| 01006D0017F7A000 | Mario & Luigi: Brothership (Switch 1) |
+| 010051F0207B2000 | Tomodachi Life: Living the Dream (Switch 1) |
 
 Add ids here when a report identifies a new game.
 
@@ -82,6 +95,7 @@ Use these before guessing. All are off unless the variable is set; pass them as 
 | Video playback | `EDEN_NX2_VDEC_TRACE=1`, `EDEN_NX2_VDEC_DUMP=<dir>` | Decoder submit, decode and composite trace; decoded frames. |
 | Performance and frame pacing | `EDEN_NX2_GPU_PROFILE=1`, `EDEN_DKB_FRAME_TRACE=1` | GPU thread, back thread and Vulkan worker time per second by zone, GPU waits by the zone they happen in, waits for the back by site, and spin mutex contention; per-present interval, CPU and fence timing. The profile also logs `Async read-back per second` every 10 s: guest reads of GPU-written memory, their waits, and macro DMA reads that waited for the split's back or drained it. |
 | HostTiming CPU or timer lateness (late guest timers, audio or vsync jitter) | `EDEN_NX2_HOSTTIMING_STATS=1`, or live with the debug server's `host_timing {"stats": true}` | One `HostTiming wait` line per second: waits, waits woken by newly scheduled events, OS sleep and `WaitFor` time (ms/s), how late timed waits ended and how late events fired (p50/p99/max µs), and the thread's CPU %. |
+| Guest cores' idle CPU or wake-up latency (time in PhysicalCore::Idle) | `EDEN_NX2_IDLE_STATS=1` | One `Guest core N idle` line per core every 10 s: idle periods, how many the poll caught, the average time polled, how many blocked and how long those took to wake after the interrupt (p50/p99 µs), and the current poll. |
 | Shader stutter or not, boot and cache costs | `EDEN_NX2_STUTTER_TRACE=1` | One `Nx2Stutter` line per frame presented over 33 ms after the last, with its top cause (gfx/compute pipeline built on the GPU thread, pipeline wait, shader capture, texture, buffer, query/fence, present, other) and each GPU thread's ms; `Nx2StutterSummary` every 10 s (frame-time histogram, builds, cache lookups, cache file size); `Nx2Boot` boot phases with commit and peak commit. Frames over `EDEN_NX2_STUTTER_DETAIL_MS` (default 50) also get `Nx2StutterDetail`: each GPU thread's eight largest zones (ms/calls) and the rare sites that ran (device memory allocate/free, staging, buffer and image create/delete/GC, synchronous downloads, `Scheduler::Finish`), with each run over 2 ms by thread; the summary adds the sites per 10 s. The category totals in the summary are every frame's steady cost, not hitch time. `python3 -I tools/nx2/cache_metrics.py parse <log>` turns a log into JSON, `compare` A/B runs; `tools/nx2/cache_bench.py` runs the cold/warm matrix on the PC. |
 | Command corruption or pop-in | `EDEN_NX2_PB_CHECK=1`; A/B with `EDEN_NX2_PB_SNAPSHOT=0` or `EDEN_NX2_FETCH_DRAIN=1` | How many pushbuffer entries change between submit and parse. |
 | Commands read from memory instead of their submit-time copy (frames ahead, #392) | `EDEN_NX2_LIVE_READ_CHECK=1` | Every 10000 such entries, `Entries parsed from memory (<reason>): N checked, M differ` per reason, plus the first four differing entries per reason. GPU-written pages differ by design (the GPU rewrote them after submit), so compare against a frames-ahead-0 run. |
@@ -93,6 +107,7 @@ Use these before guessing. All are off unless the variable is set; pass them as 
 | Read stalls (loading hitches, NUP vs other containers) | `EDEN_NX2_FS_READ_TRACE=1` | About once a second while the guest reads, one `Guest storage reads` line (`IStorage`, the RomFS) and one `Guest file reads` line (`IFile`): count, MiB, p50/p99/max latency and reads over 1 ms and 16 ms, plus totals and read time since boot. Times cover the backend read (NUP decompression included), not the Switch 1 SD-card throttle. |
 | Unmapped device reads (`Unmapped Device ReadBlock`) | `EDEN_NX2_READBLOCK_TRACE=1` | Every read of unmapped device memory, one line per read with its first unmapped address, unmapped byte count and caller (`file:line`). Without it only the first 16 are logged. |
 | Device loss (`Device loss occurred!`) | Always on | The `Device fault` lines after it: what VK_EXT_device_fault reports (fault addresses and their type, vendor fault codes). `not supported by the driver` means the driver has no such data. |
+| Out of memory (`Image ... failed: -2`, `No memory for the ... image`) | Always on | The `Memory trace` lines before the first failed image: system commit against its limit, DXGI local and non-local use, and each heap's driver usage and budget. On Windows, commit at its limit means RAM plus the page file ran out, not the card; other hosts report no commit limit and log `0 of 0`, which says nothing. The `Host memory:` line under `Texture cache thresholds` says whether host commit or the device budget bounds the cache. |
 | Driver crash, stall or slow pipeline builds | `EDEN_NX2_PIPELINE_BUILD_TRACE=<file>` | A flushed `BEGIN`/`END` line per driver pipeline build with the pipeline and stage hashes; `END` adds the wall time (`ms=`). The last `BEGIN` without an `END` names the shaders the driver crashed or is stuck on. Times include waiting on other builds, so compare runs from the same cleared driver cache rather than single builds. |
 | Host crash (log just stops) | Windows minidump in `%LOCALAPPDATA%\CrashDumps\lichii.exe.<pid>.dmp` | Read the exception and stack with the `minidump` Python package, then symbolize with `llvm-symbolizer --obj=lichii.exe --inlines --relative-address <offset>` next to the build's `lichii.pdb`. |
 
