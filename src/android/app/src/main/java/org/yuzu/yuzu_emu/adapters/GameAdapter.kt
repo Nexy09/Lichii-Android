@@ -256,26 +256,25 @@ class GameAdapter(private val activity: AppCompatActivity) :
 
                 if (game.isWiiU) {
                     WiiUEmulationActivity.launch(activity, game)
-                    return@launch
-                }
-
-                activity.lifecycleScope.launch {
-                    withContext(Dispatchers.IO) {
-                        val shortcut =
-                            ShortcutInfoCompat.Builder(YuzuApplication.appContext, game.path)
-                                .setShortLabel(game.title)
-                                .setIcon(GameIconUtils.getShortcutIcon(activity, game))
-                                .setIntent(game.launchIntent)
-                                .build()
-                        ShortcutManagerCompat.pushDynamicShortcut(
-                            YuzuApplication.appContext,
-                            shortcut
-                        )
+                } else {
+                    activity.lifecycleScope.launch {
+                        withContext(Dispatchers.IO) {
+                            val shortcut =
+                                ShortcutInfoCompat.Builder(YuzuApplication.appContext, game.path)
+                                    .setShortLabel(game.title)
+                                    .setIcon(GameIconUtils.getShortcutIcon(activity, game))
+                                    .setIntent(game.launchIntent)
+                                    .build()
+                            ShortcutManagerCompat.pushDynamicShortcut(
+                                YuzuApplication.appContext,
+                                shortcut
+                            )
+                        }
                     }
-                }
 
-                val action = HomeNavigationDirections.actionGlobalEmulationActivity(game, true)
-                binding.root.findNavController().navigate(action)
+                    val action = HomeNavigationDirections.actionGlobalEmulationActivity(game, true)
+                    binding.root.findNavController().navigate(action)
+                }
             }
 
             if (!game.isWiiU && NativeLibrary.gameRequiresFirmware(game.programId) && !NativeLibrary.isFirmwareAvailable()) {
