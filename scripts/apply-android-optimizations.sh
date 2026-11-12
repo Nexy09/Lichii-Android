@@ -241,4 +241,7 @@ patch_file("src/android/app/build.gradle.kts", patch_gradle_ktlint)
 patch_file("src/android/app/src/main/java/org/yuzu/yuzu_emu/model/Game.kt", patch_game_kt)
 PYEOF
 
+# Ensure no collision with Android Gradle Plugin ART Profile compilation
+rm -rf src/android/app/src/main/assets/dexopt
+
 echo "[+] All Lichii Android ARM64 optimizations verified and applied."
