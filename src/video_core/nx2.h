@@ -593,7 +593,7 @@ public:
         free_slot->operation = operation;
         free_slot->word = word;
         free_slot->seen =
-            word != nullptr ? std::atomic_ref<u32>{*word}.load(std::memory_order_relaxed) : 0;
+            word != nullptr ? __atomic_load_n(word, __ATOMIC_RELAXED) : 0;
         free_slot->latched.store(false, std::memory_order_relaxed);
         free_slot->owner.store(owner, std::memory_order_relaxed);
         count.fetch_add(1, std::memory_order_release);
@@ -637,7 +637,7 @@ public:
             if (slot.word == nullptr || slot.owner.load(std::memory_order_relaxed) == nullptr) {
                 continue;
             }
-            const u32 current = std::atomic_ref<u32>{*slot.word}.load(std::memory_order_relaxed);
+            const u32 current = __atomic_load_n(slot.word, __ATOMIC_RELAXED);
             if (current != slot.seen) {
                 slot.seen = current;
                 stored = true;

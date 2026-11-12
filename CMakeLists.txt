@@ -79,7 +79,7 @@ set(LICHII_BUILD_PLATFORM "" CACHE STRING "Release asset platform and variant, s
 if (ANDROID)
     set(ENABLE_UPDATE_CHECKER ON CACHE BOOL "Enable update checker (for Qt and Android)" FORCE)
     if (LICHII_BUILD_TAG STREQUAL "")
-        set(LICHII_BUILD_TAG "build-130" CACHE STRING "Published build-N release tag; empty for local builds" FORCE)
+        set(LICHII_BUILD_TAG "build-160" CACHE STRING "Published build-N release tag; empty for local builds" FORCE)
     endif()
     if (LICHII_BUILD_PLATFORM STREQUAL "")
         set(LICHII_BUILD_PLATFORM "android-arm64" CACHE STRING "Release asset platform and variant, such as linux-x86_64-pgo" FORCE)

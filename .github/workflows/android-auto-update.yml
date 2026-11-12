@@ -44,7 +44,7 @@ jobs:
 
           git remote add upstream https://github.com/zortos293/Lichii.git || \
             git remote set-url upstream https://github.com/zortos293/Lichii.git
-          git fetch upstream nx2 --tags
+          git fetch upstream nx2 --tags --force
 
           UPSTREAM_TAG=$(git describe --tags --abbrev=0 upstream/nx2 2>/dev/null || echo "build-130")
           UPSTREAM_SHA=$(git rev-parse --short upstream/nx2)

@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit
 
 object AutoUpdateManager {
     const val INSTALLED_BUILD_NUMBER = 130
-    const val INSTALLED_BUILD_TAG = "build-130"
+    const val INSTALLED_BUILD_TAG = "build-160"
     const val UPSTREAM_REPO = "zortos293/Lichii"
 
     const val PREF_AUTO_UPDATE_ENABLED = "lichii_auto_update_enabled"

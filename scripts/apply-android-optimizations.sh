@@ -189,7 +189,19 @@ def patch_nx2_gsv(text: str) -> str:
         "(std::max)(vsync_state->trace_max_late, static_cast<s64>(late.count()));",
     )
 
+def patch_nx2_h(text: str) -> str:
+    text = text.replace(
+        "std::atomic_ref<u32>{*word}.load(std::memory_order_relaxed)",
+        "__atomic_load_n(word, __ATOMIC_RELAXED)",
+    )
+    text = text.replace(
+        "std::atomic_ref<u32>{*slot.word}.load(std::memory_order_relaxed)",
+        "__atomic_load_n(slot.word, __ATOMIC_RELAXED)",
+    )
+    return text
+
 patch_file("src/core/hle/service/nx2_gsv.h", patch_nx2_gsv)
+patch_file("src/video_core/nx2.h", patch_nx2_h)
 
 # 9. Preserve Cemu Wii U integration across upstream merges
 def patch_proguard(text: str) -> str:
