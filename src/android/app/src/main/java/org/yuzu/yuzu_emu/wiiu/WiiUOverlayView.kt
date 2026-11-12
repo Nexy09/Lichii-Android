@@ -12,7 +12,7 @@ import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
 import info.cemu.cemu.nativeinterface.NativeInput
-import info.cemu.cemu.nativeinterface.NativeInput.VPADButtons
+import info.cemu.cemu.nativeinterface.NativeInput.VPADButton
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -130,37 +130,37 @@ class WiiUOverlayView(
         val dpadCenterX = w * 0.28f
         val dpadCenterY = h * 0.52f
         val dpadOffset = dpadSize * 0.92f
-        addRectButton(VPADButtons.UP, "▲", dpadCenterX, dpadCenterY - dpadOffset, dpadSize * 0.45f, dpadSize * 0.45f, false)
-        addRectButton(VPADButtons.DOWN, "▼", dpadCenterX, dpadCenterY + dpadOffset, dpadSize * 0.45f, dpadSize * 0.45f, false)
-        addRectButton(VPADButtons.LEFT, "◀", dpadCenterX - dpadOffset, dpadCenterY, dpadSize * 0.45f, dpadSize * 0.45f, false)
-        addRectButton(VPADButtons.RIGHT, "▶", dpadCenterX + dpadOffset, dpadCenterY, dpadSize * 0.45f, dpadSize * 0.45f, false)
+        addRectButton(VPADButton.UP, "▲", dpadCenterX, dpadCenterY - dpadOffset, dpadSize * 0.45f, dpadSize * 0.45f, false)
+        addRectButton(VPADButton.DOWN, "▼", dpadCenterX, dpadCenterY + dpadOffset, dpadSize * 0.45f, dpadSize * 0.45f, false)
+        addRectButton(VPADButton.LEFT, "◀", dpadCenterX - dpadOffset, dpadCenterY, dpadSize * 0.45f, dpadSize * 0.45f, false)
+        addRectButton(VPADButton.RIGHT, "▶", dpadCenterX + dpadOffset, dpadCenterY, dpadSize * 0.45f, dpadSize * 0.45f, false)
 
         // ABXY Face Buttons (Nintendo Wii U layout: A right, B down, X up, Y left)
         val abxyCenterX = w * 0.86f
         val abxyCenterY = h * 0.52f
         val abxyOffset = btnRadius * 1.95f
-        addRectButton(VPADButtons.A, "A", abxyCenterX + abxyOffset, abxyCenterY, btnRadius, btnRadius, true)
-        addRectButton(VPADButtons.B, "B", abxyCenterX, abxyCenterY + abxyOffset, btnRadius, btnRadius, true)
-        addRectButton(VPADButtons.X, "X", abxyCenterX, abxyCenterY - abxyOffset, btnRadius, btnRadius, true)
-        addRectButton(VPADButtons.Y, "Y", abxyCenterX - abxyOffset, abxyCenterY, btnRadius, btnRadius, true)
+        addRectButton(VPADButton.A, "A", abxyCenterX + abxyOffset, abxyCenterY, btnRadius, btnRadius, true)
+        addRectButton(VPADButton.B, "B", abxyCenterX, abxyCenterY + abxyOffset, btnRadius, btnRadius, true)
+        addRectButton(VPADButton.X, "X", abxyCenterX, abxyCenterY - abxyOffset, btnRadius, btnRadius, true)
+        addRectButton(VPADButton.Y, "Y", abxyCenterX - abxyOffset, abxyCenterY, btnRadius, btnRadius, true)
 
         // Shoulder & Trigger Buttons (ZL, L on top-left; R, ZR on top-right)
         val shoulderW = unit * 0.095f
         val shoulderH = unit * 0.052f
-        addRectButton(VPADButtons.ZL, "ZL", w * 0.09f, h * 0.11f, shoulderW, shoulderH, false)
-        addRectButton(VPADButtons.L, "L", w * 0.21f, h * 0.11f, shoulderW, shoulderH, false)
-        addRectButton(VPADButtons.R, "R", w * 0.79f, h * 0.11f, shoulderW, shoulderH, false)
-        addRectButton(VPADButtons.ZR, "ZR", w * 0.91f, h * 0.11f, shoulderW, shoulderH, false)
+        addRectButton(VPADButton.ZL, "ZL", w * 0.09f, h * 0.11f, shoulderW, shoulderH, false)
+        addRectButton(VPADButton.L, "L", w * 0.21f, h * 0.11f, shoulderW, shoulderH, false)
+        addRectButton(VPADButton.R, "R", w * 0.79f, h * 0.11f, shoulderW, shoulderH, false)
+        addRectButton(VPADButton.ZR, "ZR", w * 0.91f, h * 0.11f, shoulderW, shoulderH, false)
 
         // L3 / R3 Stick Clicks
         val l3W = unit * 0.055f
         val l3H = unit * 0.042f
-        addRectButton(VPADButtons.STICK_L, "L3", w * 0.06f, h * 0.42f, l3W, l3H, false)
-        addRectButton(VPADButtons.STICK_R, "R3", w * 0.94f, h * 0.42f, l3W, l3H, false)
+        addRectButton(VPADButton.STICKL, "L3", w * 0.06f, h * 0.42f, l3W, l3H, false)
+        addRectButton(VPADButton.STICKR, "R3", w * 0.94f, h * 0.42f, l3W, l3H, false)
 
         // Minus / Plus
-        addRectButton(VPADButtons.MINUS, "−", w * 0.36f, h * 0.90f, btnRadius * 0.75f, btnRadius * 0.75f, true)
-        addRectButton(VPADButtons.PLUS, "+", w * 0.64f, h * 0.90f, btnRadius * 0.75f, btnRadius * 0.75f, true)
+        addRectButton(VPADButton.MINUS, "−", w * 0.36f, h * 0.90f, btnRadius * 0.75f, btnRadius * 0.75f, true)
+        addRectButton(VPADButton.PLUS, "+", w * 0.64f, h * 0.90f, btnRadius * 0.75f, btnRadius * 0.75f, true)
 
         // Top Center Utility Pill Buttons (TV/Gamepad Swap, Hide UI, Menu)
         val pillW = unit * 0.075f
@@ -405,15 +405,15 @@ class WiiUOverlayView(
         val downVal = max(0f, y)
 
         if (isLeft) {
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_L_LEFT, leftVal)
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_L_RIGHT, rightVal)
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_L_UP, upVal)
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_L_DOWN, downVal)
+            NativeInput.onOverlayAxis(0, VPADButton.STICKL_LEFT, leftVal)
+            NativeInput.onOverlayAxis(0, VPADButton.STICKL_RIGHT, rightVal)
+            NativeInput.onOverlayAxis(0, VPADButton.STICKL_UP, upVal)
+            NativeInput.onOverlayAxis(0, VPADButton.STICKL_DOWN, downVal)
         } else {
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_R_LEFT, leftVal)
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_R_RIGHT, rightVal)
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_R_UP, upVal)
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_R_DOWN, downVal)
+            NativeInput.onOverlayAxis(0, VPADButton.STICKR_LEFT, leftVal)
+            NativeInput.onOverlayAxis(0, VPADButton.STICKR_RIGHT, rightVal)
+            NativeInput.onOverlayAxis(0, VPADButton.STICKR_UP, upVal)
+            NativeInput.onOverlayAxis(0, VPADButton.STICKR_DOWN, downVal)
         }
     }
 }

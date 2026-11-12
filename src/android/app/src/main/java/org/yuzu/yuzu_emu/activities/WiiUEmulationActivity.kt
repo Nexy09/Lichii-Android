@@ -19,6 +19,7 @@ import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.os.BundleCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -26,11 +27,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import info.cemu.cemu.nativeinterface.NativeEmulation
 import info.cemu.cemu.nativeinterface.NativeEmulation.PrepareTitleResult
 import info.cemu.cemu.nativeinterface.NativeInput
-import info.cemu.cemu.nativeinterface.NativeInput.VPADButtons
+import info.cemu.cemu.nativeinterface.NativeInput.VPADButton
 import info.cemu.cemu.nativeinterface.NativeSettings
 import org.yuzu.yuzu_emu.model.Game
 import org.yuzu.yuzu_emu.utils.Log
-import org.yuzu.yuzu_emu.utils.ParcelableHelper.parcelable
 import org.yuzu.yuzu_emu.wiiu.CemuEngineManager
 import org.yuzu.yuzu_emu.wiiu.WiiUOverlayView
 import kotlin.math.abs
@@ -68,7 +68,9 @@ class WiiUEmulationActivity : AppCompatActivity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         setFullscreenImmersive()
 
-        val selectedGame = intent.parcelable<Game>(EXTRA_SELECTED_GAME)
+        val selectedGame = intent.extras?.let {
+            BundleCompat.getParcelable(it, EXTRA_SELECTED_GAME, Game::class.java)
+        }
         val rawPath = selectedGame?.path ?: intent.getStringExtra(EXTRA_LAUNCH_PATH).orEmpty()
         gameTitle = selectedGame?.title ?: "Wii U"
 
@@ -322,22 +324,22 @@ class WiiUEmulationActivity : AppCompatActivity() {
             val rx = applyDeadzone(event.getAxisValue(MotionEvent.AXIS_Z))
             val ry = applyDeadzone(event.getAxisValue(MotionEvent.AXIS_RZ))
 
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_L_LEFT, max(0f, -lx))
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_L_RIGHT, max(0f, lx))
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_L_UP, max(0f, -ly))
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_L_DOWN, max(0f, ly))
+            NativeInput.onOverlayAxis(0, VPADButton.STICKL_LEFT, max(0f, -lx))
+            NativeInput.onOverlayAxis(0, VPADButton.STICKL_RIGHT, max(0f, lx))
+            NativeInput.onOverlayAxis(0, VPADButton.STICKL_UP, max(0f, -ly))
+            NativeInput.onOverlayAxis(0, VPADButton.STICKL_DOWN, max(0f, ly))
 
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_R_LEFT, max(0f, -rx))
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_R_RIGHT, max(0f, rx))
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_R_UP, max(0f, -ry))
-            NativeInput.onOverlayAxis(0, VPADButtons.STICK_R_DOWN, max(0f, ry))
+            NativeInput.onOverlayAxis(0, VPADButton.STICKR_LEFT, max(0f, -rx))
+            NativeInput.onOverlayAxis(0, VPADButton.STICKR_RIGHT, max(0f, rx))
+            NativeInput.onOverlayAxis(0, VPADButton.STICKR_UP, max(0f, -ry))
+            NativeInput.onOverlayAxis(0, VPADButton.STICKR_DOWN, max(0f, ry))
 
             val hatX = event.getAxisValue(MotionEvent.AXIS_HAT_X)
             val hatY = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
-            NativeInput.onOverlayButton(0, VPADButtons.LEFT, hatX < -0.5f)
-            NativeInput.onOverlayButton(0, VPADButtons.RIGHT, hatX > 0.5f)
-            NativeInput.onOverlayButton(0, VPADButtons.UP, hatY < -0.5f)
-            NativeInput.onOverlayButton(0, VPADButtons.DOWN, hatY > 0.5f)
+            NativeInput.onOverlayButton(0, VPADButton.LEFT, hatX < -0.5f)
+            NativeInput.onOverlayButton(0, VPADButton.RIGHT, hatX > 0.5f)
+            NativeInput.onOverlayButton(0, VPADButton.UP, hatY < -0.5f)
+            NativeInput.onOverlayButton(0, VPADButton.DOWN, hatY > 0.5f)
 
             val lTrigger = max(
                 event.getAxisValue(MotionEvent.AXIS_LTRIGGER),
@@ -347,8 +349,8 @@ class WiiUEmulationActivity : AppCompatActivity() {
                 event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
                 event.getAxisValue(MotionEvent.AXIS_GAS)
             )
-            NativeInput.onOverlayButton(0, VPADButtons.ZL, lTrigger > 0.45f)
-            NativeInput.onOverlayButton(0, VPADButtons.ZR, rTrigger > 0.45f)
+            NativeInput.onOverlayButton(0, VPADButton.ZL, lTrigger > 0.45f)
+            NativeInput.onOverlayButton(0, VPADButton.ZR, rTrigger > 0.45f)
             return true
         }
         return super.dispatchGenericMotionEvent(event)
@@ -360,22 +362,22 @@ class WiiUEmulationActivity : AppCompatActivity() {
 
     private fun mapKeyCodeToVPAD(keyCode: Int): Int {
         return when (keyCode) {
-            KeyEvent.KEYCODE_BUTTON_B -> VPADButtons.A
-            KeyEvent.KEYCODE_BUTTON_A -> VPADButtons.B
-            KeyEvent.KEYCODE_BUTTON_Y -> VPADButtons.X
-            KeyEvent.KEYCODE_BUTTON_X -> VPADButtons.Y
-            KeyEvent.KEYCODE_BUTTON_L1 -> VPADButtons.L
-            KeyEvent.KEYCODE_BUTTON_R1 -> VPADButtons.R
-            KeyEvent.KEYCODE_BUTTON_L2 -> VPADButtons.ZL
-            KeyEvent.KEYCODE_BUTTON_R2 -> VPADButtons.ZR
-            KeyEvent.KEYCODE_BUTTON_START -> VPADButtons.PLUS
-            KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_MODE -> VPADButtons.MINUS
-            KeyEvent.KEYCODE_BUTTON_THUMBL -> VPADButtons.STICK_L
-            KeyEvent.KEYCODE_BUTTON_THUMBR -> VPADButtons.STICK_R
-            KeyEvent.KEYCODE_DPAD_UP -> VPADButtons.UP
-            KeyEvent.KEYCODE_DPAD_DOWN -> VPADButtons.DOWN
-            KeyEvent.KEYCODE_DPAD_LEFT -> VPADButtons.LEFT
-            KeyEvent.KEYCODE_DPAD_RIGHT -> VPADButtons.RIGHT
+            KeyEvent.KEYCODE_BUTTON_B -> VPADButton.A
+            KeyEvent.KEYCODE_BUTTON_A -> VPADButton.B
+            KeyEvent.KEYCODE_BUTTON_Y -> VPADButton.X
+            KeyEvent.KEYCODE_BUTTON_X -> VPADButton.Y
+            KeyEvent.KEYCODE_BUTTON_L1 -> VPADButton.L
+            KeyEvent.KEYCODE_BUTTON_R1 -> VPADButton.R
+            KeyEvent.KEYCODE_BUTTON_L2 -> VPADButton.ZL
+            KeyEvent.KEYCODE_BUTTON_R2 -> VPADButton.ZR
+            KeyEvent.KEYCODE_BUTTON_START -> VPADButton.PLUS
+            KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_MODE -> VPADButton.MINUS
+            KeyEvent.KEYCODE_BUTTON_THUMBL -> VPADButton.STICKL
+            KeyEvent.KEYCODE_BUTTON_THUMBR -> VPADButton.STICKR
+            KeyEvent.KEYCODE_DPAD_UP -> VPADButton.UP
+            KeyEvent.KEYCODE_DPAD_DOWN -> VPADButton.DOWN
+            KeyEvent.KEYCODE_DPAD_LEFT -> VPADButton.LEFT
+            KeyEvent.KEYCODE_DPAD_RIGHT -> VPADButton.RIGHT
             else -> -1
         }
     }
