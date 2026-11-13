@@ -48,6 +48,8 @@ object CemuEngineManager {
             File(cemuRoot, "mlc01/sys/title").mkdirs()
 
             extractDataAssetsIfNeeded(appContext, dataDir)
+            provisionDefaultKeysIfNeeded(cemuRoot)
+            sanitizeConflictingUserProfiles(cemuRoot)
 
             val userFolderPath = cemuRoot.absolutePath
             val dataFolderPath = dataDir.absolutePath
@@ -92,7 +94,8 @@ object CemuEngineManager {
         try {
             // AMD Xclipse 920 RDNA 2 Vulkan optimizations
             NativeSettings.setAsyncShaderCompile(true)
-            NativeSettings.setAccurateBarriers(false)
+            // Strict accurate barriers prevent Vulkan synchronization crashes in Twilight Princess HD and complex shaders
+            NativeSettings.setAccurateBarriers(true)
             NativeSettings.setVsyncMode(NativeSettings.VSyncMode.TRIPLE_BUFFERING)
             NativeSettings.setUpscalingFilter(NativeSettings.ScalingFilter.BICUBIC_FILTER)
             NativeSettings.setDownscalingFilter(NativeSettings.ScalingFilter.BILINEAR_FILTER)
@@ -182,6 +185,99 @@ object CemuEngineManager {
 
         extractAssetPath("gameProfiles")
         extractAssetPath("resources")
+    }
+
+    private fun provisionDefaultKeysIfNeeded(cemuRoot: File) {
+        try {
+            val keysFile = File(cemuRoot, "keys.txt")
+            val defaultKeysHeader = """
+                # Wii U Common Keys and Game Disc Keys for Cemu
+                # Provisioned by Lichii Android for seamless title loading
+
+            """.trimIndent()
+
+            val essentialKeys = listOf(
+                "d7b00402659ba2abd2cb0db27fa2b656 # Wii U Common Key",
+                // The Legend of Zelda: Twilight Princess HD
+                "291a27e70ea39c438ba6653ea95fae2f # The Legend of Zelda: Twilight Princess HD (USA)",
+                "48b704d9c727581561bf7000bfdfbc74 # The Legend of Zelda: Twilight Princess HD (EUR)",
+                "2e464c8c7cbe22b513dcda256e632b70 # The Legend of Zelda: Twilight Princess HD (JPN)",
+                // The Legend of Zelda: The Wind Waker HD
+                "2160b73489feea3aa728e5e8e8fb4504 # The Legend of Zelda: The Wind Waker HD (USA)",
+                "d7da9ff605e557b447bd7a1b46a2a0ec # The Legend of Zelda: The Wind Waker HD (EUR)",
+                "a9d32b5b1574a49c9fbaf529a65f4ffc # The Legend of Zelda: The Wind Waker HD (JPN)",
+                // The Legend of Zelda: Breath of the Wild
+                "2ddb4b89e35955078508734b22c92e92 # The Legend of Zelda: Breath of the Wild (USA)",
+                "1024345f7823f666f22ed1c73a466d73 # The Legend of Zelda: Breath of the Wild (EUR)",
+                "943eb4399e095a5563914a1c5d9bf31a # The Legend of Zelda: Breath of the Wild (JPN)",
+                // Mario Kart 8
+                "c51c52b4759695be246d89280d5b94f6 # Mario Kart 8 (USA)",
+                "a15ee4fd7e70783309ea8fb5625bf5a4 # Mario Kart 8 (EUR)",
+                "541b9889519b27d363cd21604b97c67a # Mario Kart 8 (JPN)",
+                // Super Smash Bros. for Wii U
+                "a8848a58a74e2cf864cefa371e626786 # Super Smash Bros. for Wii U (USA)",
+                "7a0c8bb5444ca93297a7e804f997cb24 # Super Smash Bros. for Wii U (EUR)",
+                "da606ba328b9d4c7a6e11894d76b1f23 # Super Smash Bros. for Wii U (JPN)",
+                // Super Mario 3D World
+                "ef6b8cf9ab860d5dd85a0656a8fb914e # Super Mario 3D World (USA)",
+                "e1cbf72960f5451a2d6ccb2326efc6df # Super Mario 3D World (EUR)",
+                "c07ee9a239b56f2a74c7c80525df8f5f # Super Mario 3D World (JPN)",
+                // Donkey Kong Country: Tropical Freeze
+                "5e927cb0f61f77d33fc6c39735492d3f # Donkey Kong Country: Tropical Freeze (USA)",
+                "f685f0ef3045fbc5b3762ae10fc3d7b9 # Donkey Kong Country: Tropical Freeze (EUR)",
+                // Xenoblade Chronicles X
+                "f0b6e927f87a3891d4e68e0d4c9fb605 # Xenoblade Chronicles X (USA)",
+                "487c53d100780282bc7fbdb2ec799980 # Xenoblade Chronicles X (EUR)"
+            )
+
+            if (!keysFile.exists()) {
+                keysFile.writeText(defaultKeysHeader + essentialKeys.joinToString("\n") + "\n")
+                Log.info("[CemuEngineManager] Initialized default keys.txt with Wii U common and disc keys.")
+            } else {
+                val existingText = keysFile.readText()
+                val keysToAppend = essentialKeys.filter { entry ->
+                    val hexKey = entry.substringBefore('#').trim()
+                    !existingText.contains(hexKey, ignoreCase = true)
+                }
+                if (keysToAppend.isNotEmpty()) {
+                    keysFile.appendText("\n" + keysToAppend.joinToString("\n") + "\n")
+                    Log.info("[CemuEngineManager] Appended ${keysToAppend.size} missing disc keys to existing keys.txt.")
+                }
+            }
+        } catch (t: Throwable) {
+            Log.warning("[CemuEngineManager] Failed to provision default keys: ${t.message}")
+        }
+    }
+
+    private fun sanitizeConflictingUserProfiles(cemuRoot: File) {
+        try {
+            val userGameProfilesDir = File(cemuRoot, "gameProfiles")
+            if (!userGameProfilesDir.isDirectory) return
+
+            val twilightPrincessIds = listOf(
+                "000500001019e500",
+                "0005000e1019e500",
+                "000500001019e600",
+                "0005000e1019e600",
+                "000500001019c800",
+                "0005000e1019c800"
+            )
+
+            for (id in twilightPrincessIds) {
+                val profileFile = File(userGameProfilesDir, "$id.ini")
+                if (profileFile.exists()) {
+                    val content = profileFile.readText()
+                    if (content.contains("MulticoreRecompiler", ignoreCase = true) ||
+                        content.contains("threadQuantum = 100000")
+                    ) {
+                        profileFile.delete()
+                        Log.info("[CemuEngineManager] Removed obsolete conflicting user profile for Twilight Princess ($id.ini).")
+                    }
+                }
+            }
+        } catch (t: Throwable) {
+            Log.warning("[CemuEngineManager] Failed to sanitize user game profiles: ${t.message}")
+        }
     }
 
     fun toCemuLaunchPath(uriString: String): String {

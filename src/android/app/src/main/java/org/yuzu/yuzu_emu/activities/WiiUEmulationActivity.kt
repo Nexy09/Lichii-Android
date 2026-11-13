@@ -23,16 +23,22 @@ import androidx.core.os.BundleCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import info.cemu.cemu.nativeinterface.NativeEmulation
 import info.cemu.cemu.nativeinterface.NativeEmulation.PrepareTitleResult
 import info.cemu.cemu.nativeinterface.NativeInput
 import info.cemu.cemu.nativeinterface.NativeInput.VPADButton
 import info.cemu.cemu.nativeinterface.NativeSettings
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.yuzu.yuzu_emu.model.Game
 import org.yuzu.yuzu_emu.utils.Log
 import org.yuzu.yuzu_emu.wiiu.CemuEngineManager
 import org.yuzu.yuzu_emu.wiiu.WiiUOverlayView
+import java.io.File
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.system.exitProcess
@@ -44,10 +50,14 @@ class WiiUEmulationActivity : AppCompatActivity() {
 
     private var launchPath: String = ""
     private var gameTitle: String = "Wii U"
+    @Volatile
     private var hasEmulationStarted = false
+    @Volatile
     private var isRendererInitialized = false
+    @Volatile
     private var isGamePaused = false
     private var isPadViewReplaced = false
+    private var launchJob: Job? = null
 
     companion object {
         const val EXTRA_SELECTED_GAME = "SelectedGame"
@@ -131,7 +141,6 @@ class WiiUEmulationActivity : AppCompatActivity() {
 
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                // Handled in surfaceChanged once dimensions are known
             }
 
             override fun surfaceChanged(
@@ -141,35 +150,29 @@ class WiiUEmulationActivity : AppCompatActivity() {
                 height: Int
             ) {
                 try {
-                    if (!hasEmulationStarted) {
-                        val prepareResult = NativeEmulation.prepareTitle(launchPath)
-                        if (prepareResult != PrepareTitleResult.SUCCESSFUL) {
-                            showPrepareErrorDialog(prepareResult)
-                            return
-                        }
-                        CemuEngineManager.ensureSystemsInitialized()
-                        if (!isRendererInitialized) {
-                            NativeEmulation.initializeRenderer()
-                            isRendererInitialized = true
-                        }
-                    }
-
-                    NativeEmulation.setSurface(holder.surface, true)
                     NativeEmulation.setSurfaceSize(width, height, true)
+                    NativeEmulation.setSurface(holder.surface, true)
+                    NativeEmulation.clearPadSurface()
 
-                    if (!hasEmulationStarted) {
-                        hasEmulationStarted = true
-                        NativeEmulation.initializeSurface(true)
-                        NativeEmulation.launchTitle()
+                    if (hasEmulationStarted) {
+                        if (isGamePaused) {
+                            NativeEmulation.resumeTitle()
+                            isGamePaused = false
+                        }
+                        return
                     }
+
+                    startEmulationWorker()
                 } catch (t: Throwable) {
-                    Log.error("[WiiUEmulationActivity] Error starting Wii U renderer: ${t.message}")
+                    Log.error("[WiiUEmulationActivity] Error in surfaceChanged: ${t.message}")
                 }
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
                 if (hasEmulationStarted) {
                     try {
+                        NativeEmulation.pauseTitle()
+                        isGamePaused = true
                         NativeEmulation.setSurface(null, true)
                     } catch (_: Throwable) {
                     }
@@ -187,16 +190,55 @@ class WiiUEmulationActivity : AppCompatActivity() {
         )
     }
 
+    private fun startEmulationWorker() {
+        if (hasEmulationStarted || launchJob != null) return
+        hasEmulationStarted = true
+
+        launchJob = lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                Log.info("[WiiUEmulationActivity] Preparing Wii U title '$gameTitle' ($launchPath)...")
+                val prepareResult = NativeEmulation.prepareTitle(launchPath)
+                if (prepareResult != PrepareTitleResult.SUCCESSFUL) {
+                    Log.error("[WiiUEmulationActivity] Failed to prepare title, code: $prepareResult")
+                    withContext(Dispatchers.Main) {
+                        showPrepareErrorDialog(prepareResult)
+                    }
+                    return@launch
+                }
+
+                Log.info("[WiiUEmulationActivity] Ensuring systems initialized...")
+                CemuEngineManager.ensureSystemsInitialized()
+
+                Log.info("[WiiUEmulationActivity] Initializing renderer & surface...")
+                if (!isRendererInitialized) {
+                    NativeEmulation.initializeRenderer()
+                    isRendererInitialized = true
+                }
+                NativeEmulation.initializeSurface(true)
+
+                Log.info("[WiiUEmulationActivity] Launching title on Cemu engine...")
+                NativeEmulation.launchTitle()
+                Log.info("[WiiUEmulationActivity] Title successfully running.")
+            } catch (t: Throwable) {
+                Log.error("[WiiUEmulationActivity] Native exception during emulation launch: ${t.message}")
+                withContext(Dispatchers.Main) {
+                    showLaunchErrorDialog(t.message ?: "Erreur native inconnue")
+                }
+            }
+        }
+    }
+
     private fun showPrepareErrorDialog(errorCode: Int) {
+        if (isFinishing || isDestroyed) return
         val message = when (errorCode) {
             PrepareTitleResult.ERROR_GAME_BASE_FILES_NOT_FOUND ->
-                "Fichiers de base du jeu Wii U introuvables. Vérifiez que le fichier .wua/.wud/.wux/.rpx est complet."
+                "Fichiers de base du jeu Wii U introuvables.\n\nVérifiez que le fichier ($gameTitle) est complet (.wua, .rpx, ou dossier avec code/content/meta)."
             PrepareTitleResult.ERROR_NO_DISC_KEY ->
-                "Clé de disque Wii U manquante dans keys.txt pour cette image chiffrée (.wud/.wux). Utilisez une archive .wua ou ajoutez la clé dans keys.txt."
+                "Clé de déchiffrement Wii U manquante dans keys.txt pour cette image de disque (.wud/.wux).\n\nPour Twilight Princess HD, utilisez de préférence une archive .wua déchiffrée ou ajoutez la clé du disque dans keys.txt."
             PrepareTitleResult.ERROR_NO_TITLE_TIK ->
                 "Fichier title.tik manquant pour ce jeu Wii U."
             else ->
-                "Impossible de préparer le titre Wii U (code : $errorCode)."
+                "Impossible de préparer le titre Wii U (code : $errorCode).\n\nVérifiez la compatibilité et l'intégrité de la ROM Twilight Princess HD."
         }
 
         MaterialAlertDialogBuilder(this)
@@ -207,17 +249,31 @@ class WiiUEmulationActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun showLaunchErrorDialog(errorMessage: String) {
+        if (isFinishing || isDestroyed) return
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Erreur du moteur Cemu")
+            .setMessage("Une erreur s'est produite lors du lancement de $gameTitle :\n\n$errorMessage\n\nSi le problème persiste, videz le cache des shaders ou vérifiez les fichiers de jeu.")
+            .setCancelable(false)
+            .setPositiveButton(android.R.string.ok) { _, _ -> finish() }
+            .show()
+    }
+
     private fun showQuickMenu() {
         if (hasEmulationStarted && !isGamePaused) {
             isGamePaused = true
-            NativeEmulation.pauseTitle()
+            try {
+                NativeEmulation.pauseTitle()
+            } catch (_: Throwable) {
+            }
         }
 
         val items = arrayOf(
             if (isPadViewReplaced) "Basculer vers l'écran TV" else "Basculer vers l'écran Wii U GamePad",
             if (overlayView.controlsVisible) "Masquer la manette tactile" else "Afficher la manette tactile",
             if (NativeSettings.isOverlayFPSEnabled()) "Masquer le compteur FPS" else "Afficher le compteur FPS",
-            if (NativeSettings.getAccurateBarriers()) "Activer le mode Boost RDNA 2 (AccurateBarriers OFF)" else "Activer les barrières Vulkan strictes (AccurateBarriers ON)",
+            if (NativeSettings.getAccurateBarriers()) "Barrières Vulkan strictes (ON - Stable)" else "Mode Boost RDNA 2 (Barrières OFF)",
+            "Vider le cache de shaders (Dépannage)",
             "Reprendre le jeu",
             "Quitter vers Lichii"
         )
@@ -247,10 +303,14 @@ class WiiUEmulationActivity : AppCompatActivity() {
                         resumeEmulationIfNeeded()
                     }
                     4 -> {
-                        dialog.dismiss()
+                        clearShaderCache()
                         resumeEmulationIfNeeded()
                     }
                     5 -> {
+                        dialog.dismiss()
+                        resumeEmulationIfNeeded()
+                    }
+                    6 -> {
                         dialog.dismiss()
                         quitWiiUEmulation()
                     }
@@ -262,10 +322,27 @@ class WiiUEmulationActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun clearShaderCache() {
+        try {
+            val cemuRoot = File(applicationContext.filesDir, "cemu")
+            val cacheDir = File(cemuRoot, "shaderCache")
+            if (cacheDir.exists()) {
+                cacheDir.deleteRecursively()
+                cacheDir.mkdirs()
+            }
+            Toast.makeText(this, "Cache des shaders vidé avec succès", Toast.LENGTH_SHORT).show()
+        } catch (t: Throwable) {
+            Toast.makeText(this, "Impossible de vider le cache: ${t.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun resumeEmulationIfNeeded() {
         if (hasEmulationStarted && isGamePaused) {
             isGamePaused = false
-            NativeEmulation.resumeTitle()
+            try {
+                NativeEmulation.resumeTitle()
+            } catch (_: Throwable) {
+            }
         }
         setFullscreenImmersive()
     }
@@ -293,6 +370,18 @@ class WiiUEmulationActivity : AppCompatActivity() {
             isGamePaused = false
             try {
                 NativeEmulation.resumeTitle()
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        launchJob?.cancel()
+        if (hasEmulationStarted) {
+            try {
+                NativeEmulation.clearPadSurface()
+                NativeEmulation.pauseTitle()
             } catch (_: Throwable) {
             }
         }
