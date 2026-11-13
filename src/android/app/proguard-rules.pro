@@ -15,6 +15,9 @@
 -keep class info.cemu.cemu.** { *; }
 -keepclassmembers class info.cemu.cemu.** { *; }
 
+-keep class org.dolphinemu.dolphinemu.** { *; }
+-keepclassmembers class org.dolphinemu.dolphinemu.** { *; }
+
 # Suppress warnings for R8
 -dontwarn org.bouncycastle.jsse.BCSSLParameters
 -dontwarn org.bouncycastle.jsse.BCSSLSocket

@@ -210,6 +210,8 @@ patch_file("src/video_core/nx2.h", patch_nx2_h)
 def patch_proguard(text: str) -> str:
     if "info.cemu.cemu" not in text:
         text += "\n-keep class info.cemu.cemu.** { *; }\n-keepclassmembers class info.cemu.cemu.** { *; }\n"
+    if "org.dolphinemu.dolphinemu" not in text:
+        text += "\n-keep class org.dolphinemu.dolphinemu.** { *; }\n-keepclassmembers class org.dolphinemu.dolphinemu.** { *; }\n"
     return text
 
 def patch_gradle_ktlint(text: str) -> str:
