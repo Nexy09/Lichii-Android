@@ -153,7 +153,10 @@ def patch_auto_update_kt(text: str) -> str:
         text,
     )
 
-patch_file("src/android/app/src/main/java/org/yuzu/yuzu_emu/updater/AutoUpdateManager.kt", patch_auto_update_kt)
+auto_update_path = "src/android/app/src/main/java/org/yuzu/yuzu_emu/updater/AutoUpdateManager.kt"
+if not pathlib.Path(auto_update_path).exists():
+    auto_update_path = "src/android/app/src/main/java/io/github/zortos293/lichii/updater/AutoUpdateManager.kt"
+patch_file(auto_update_path, patch_auto_update_kt)
 
 # 6. Ensure Android APK asset matching in src/common/net/net.cpp
 def patch_net_cpp(text: str) -> str:
@@ -258,7 +261,10 @@ def patch_game_kt(text: str) -> str:
 
 patch_file("src/android/app/proguard-rules.pro", patch_proguard)
 patch_file("src/android/app/build.gradle.kts", patch_gradle_ktlint)
-patch_file("src/android/app/src/main/java/org/yuzu/yuzu_emu/model/Game.kt", patch_game_kt)
+game_kt_path = "src/android/app/src/main/java/org/yuzu/yuzu_emu/model/Game.kt"
+if not pathlib.Path(game_kt_path).exists():
+    game_kt_path = "src/android/app/src/main/java/io/github/zortos293/lichii/model/Game.kt"
+patch_file(game_kt_path, patch_game_kt)
 PYEOF
 
 # Ensure no collision with Android Gradle Plugin ART Profile compilation

@@ -51,17 +51,25 @@ jobs:
           echo "upstream_tag=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
           echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
 
-          # Check if we already published a release for this tag in our repository
-          EXISTING_RELEASE=$(gh release view "${UPSTREAM_TAG}" --json tagName -q .tagName 2>/dev/null || echo "")
-          if [ -n "${EXISTING_RELEASE}" ] && [ "${{ github.event.inputs.force_build }}" != "true" ] && [ "${{ github.event_name }}" = "schedule" ]; then
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
-            echo "[=] Release ${UPSTREAM_TAG} is already built and published."
-          else
+          # For push events, build current commit directly without clobbering with unmerged upstream renames
+          if [ "${{ github.event_name }}" = "push" ]; then
             echo "should_build=true" >> "$GITHUB_OUTPUT"
-            echo "[*] Merging upstream/nx2 (${UPSTREAM_TAG} @ ${UPSTREAM_SHA}) and re-applying Android optimizations..."
-            git merge upstream/nx2 --no-edit -X ours || true
+            echo "[*] Triggered by push on ${GITHUB_REF_NAME} (${GITHUB_SHA}) — applying optimizations to current commit..."
             chmod +x scripts/apply-android-optimizations.sh
             ./scripts/apply-android-optimizations.sh
+          else
+            # Check if we already published a release for this tag in our repository
+            EXISTING_RELEASE=$(gh release view "${UPSTREAM_TAG}" --json tagName -q .tagName 2>/dev/null || echo "")
+            if [ -n "${EXISTING_RELEASE}" ] && [ "${{ github.event.inputs.force_build }}" != "true" ] && [ "${{ github.event_name }}" = "schedule" ]; then
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+              echo "[=] Release ${UPSTREAM_TAG} is already built and published."
+            else
+              echo "should_build=true" >> "$GITHUB_OUTPUT"
+              echo "[*] Merging upstream/nx2 (${UPSTREAM_TAG} @ ${UPSTREAM_SHA}) and re-applying Android optimizations..."
+              git merge upstream/nx2 --no-edit -X ours || true
+              chmod +x scripts/apply-android-optimizations.sh
+              ./scripts/apply-android-optimizations.sh
+            fi
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

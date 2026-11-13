@@ -7,6 +7,8 @@
         <item name="postSplashScreenTheme">@style/Theme.Yuzu.Main</item>
     </style>
 
+    <style name="Theme.Lichii.Splash.Main" parent="Theme.Yuzu.Splash.Main" />
+
     <style name="Theme.Yuzu.Main" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorError">@color/yuzu_error</item>
         <item name="colorErrorContainer">@color/yuzu_errorContainer</item>
@@ -26,6 +28,8 @@
         <!-- Popup menu theme -->
         <item name="popupMenuStyle">@style/YuzuPopupMenu</item>
     </style>
+
+    <style name="Theme.Lichii.Main" parent="Theme.Yuzu.Main" />
 
     <style name="Theme.Eden.Main" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary colors -->
