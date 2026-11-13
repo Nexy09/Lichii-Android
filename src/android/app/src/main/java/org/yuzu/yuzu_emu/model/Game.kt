@@ -15,7 +15,9 @@ import kotlinx.serialization.Serializable
 import org.yuzu.yuzu_emu.NativeLibrary
 import org.yuzu.yuzu_emu.R
 import org.yuzu.yuzu_emu.YuzuApplication
+import org.yuzu.yuzu_emu.activities.DolphinEmulationActivity
 import org.yuzu.yuzu_emu.activities.EmulationActivity
+import org.yuzu.yuzu_emu.activities.WiiUEmulationActivity
 import org.yuzu.yuzu_emu.utils.DirectoryInitialization
 import org.yuzu.yuzu_emu.utils.FileUtil
 import org.yuzu.yuzu_emu.utils.NativeConfig
@@ -89,9 +91,19 @@ class Game(
         get() = DirectoryInitialization.userDirectory + "/load/" + programIdHex + "/"
 
     val launchIntent: Intent
-        get() = Intent(YuzuApplication.appContext, EmulationActivity::class.java).apply {
-            action = Intent.ACTION_VIEW
-            data = Uri.parse(path)
+        get() = when {
+            isWiiU -> Intent(YuzuApplication.appContext, WiiUEmulationActivity::class.java).apply {
+                putExtra(WiiUEmulationActivity.EXTRA_SELECTED_GAME, this@Game)
+                putExtra(WiiUEmulationActivity.EXTRA_LAUNCH_PATH, path)
+            }
+            isGameCube || isWii -> Intent(YuzuApplication.appContext, DolphinEmulationActivity::class.java).apply {
+                putExtra(DolphinEmulationActivity.EXTRA_SELECTED_GAME, this@Game)
+                putExtra(DolphinEmulationActivity.EXTRA_LAUNCH_PATH, path)
+            }
+            else -> Intent(YuzuApplication.appContext, EmulationActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                data = Uri.parse(path)
+            }
         }
 
     override fun equals(other: Any?): Boolean {

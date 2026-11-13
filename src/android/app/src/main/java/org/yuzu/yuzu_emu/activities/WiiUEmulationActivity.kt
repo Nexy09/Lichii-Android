@@ -6,6 +6,7 @@ package org.yuzu.yuzu_emu.activities
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.InputDevice
@@ -35,6 +36,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.yuzu.yuzu_emu.model.Game
+import org.yuzu.yuzu_emu.utils.FileUtil
 import org.yuzu.yuzu_emu.utils.Log
 import org.yuzu.yuzu_emu.wiiu.CemuEngineManager
 import org.yuzu.yuzu_emu.wiiu.WiiUOverlayView
@@ -51,7 +53,9 @@ class WiiUEmulationActivity : AppCompatActivity() {
     private var launchPath: String = ""
     private var gameTitle: String = "Wii U"
     @Volatile
-    private var hasEmulationStarted = false
+    private var isEmulationLaunching = false
+    @Volatile
+    private var isEmulationRunning = false
     @Volatile
     private var isRendererInitialized = false
     @Volatile
@@ -81,8 +85,20 @@ class WiiUEmulationActivity : AppCompatActivity() {
         val selectedGame = intent.extras?.let {
             BundleCompat.getParcelable(it, EXTRA_SELECTED_GAME, Game::class.java)
         }
-        val rawPath = selectedGame?.path ?: intent.getStringExtra(EXTRA_LAUNCH_PATH).orEmpty()
-        gameTitle = selectedGame?.title ?: "Wii U"
+        val rawPath = selectedGame?.path
+            ?: intent.getStringExtra(EXTRA_LAUNCH_PATH)
+            ?: intent.data?.toString().orEmpty()
+        gameTitle = selectedGame?.title
+            ?: if (rawPath.isNotEmpty()) {
+                FileUtil.getFilename(Uri.parse(rawPath)).substringBeforeLast('.').replace('_', ' ')
+            } else "Wii U"
+
+        if (rawPath.isEmpty()) {
+            Log.error("[WiiUEmulationActivity] No launch path provided!")
+            Toast.makeText(this, "Chemin de jeu introuvable", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
         if (!CemuEngineManager.ensureInitialized(this)) {
             Toast.makeText(this, "Erreur d'initialisation du moteur Wii U (Cemu)", Toast.LENGTH_LONG).show()
@@ -152,9 +168,8 @@ class WiiUEmulationActivity : AppCompatActivity() {
                 try {
                     NativeEmulation.setSurfaceSize(width, height, true)
                     NativeEmulation.setSurface(holder.surface, true)
-                    NativeEmulation.clearPadSurface()
 
-                    if (hasEmulationStarted) {
+                    if (isEmulationRunning) {
                         if (isGamePaused) {
                             NativeEmulation.resumeTitle()
                             isGamePaused = false
@@ -162,18 +177,19 @@ class WiiUEmulationActivity : AppCompatActivity() {
                         return
                     }
 
-                    startEmulationWorker()
+                    if (!isEmulationLaunching) {
+                        startEmulationWorker()
+                    }
                 } catch (t: Throwable) {
                     Log.error("[WiiUEmulationActivity] Error in surfaceChanged: ${t.message}")
                 }
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
-                if (hasEmulationStarted) {
+                if (isEmulationRunning) {
                     try {
                         NativeEmulation.pauseTitle()
                         isGamePaused = true
-                        NativeEmulation.setSurface(null, true)
                     } catch (_: Throwable) {
                     }
                 }
@@ -191,8 +207,8 @@ class WiiUEmulationActivity : AppCompatActivity() {
     }
 
     private fun startEmulationWorker() {
-        if (hasEmulationStarted || launchJob != null) return
-        hasEmulationStarted = true
+        if (isEmulationLaunching || isEmulationRunning || launchJob != null) return
+        isEmulationLaunching = true
 
         launchJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -200,6 +216,7 @@ class WiiUEmulationActivity : AppCompatActivity() {
                 val prepareResult = NativeEmulation.prepareTitle(launchPath)
                 if (prepareResult != PrepareTitleResult.SUCCESSFUL) {
                     Log.error("[WiiUEmulationActivity] Failed to prepare title, code: $prepareResult")
+                    isEmulationLaunching = false
                     withContext(Dispatchers.Main) {
                         showPrepareErrorDialog(prepareResult)
                     }
@@ -218,8 +235,11 @@ class WiiUEmulationActivity : AppCompatActivity() {
 
                 Log.info("[WiiUEmulationActivity] Launching title on Cemu engine...")
                 NativeEmulation.launchTitle()
+                isEmulationRunning = true
+                isEmulationLaunching = false
                 Log.info("[WiiUEmulationActivity] Title successfully running.")
             } catch (t: Throwable) {
+                isEmulationLaunching = false
                 Log.error("[WiiUEmulationActivity] Native exception during emulation launch: ${t.message}")
                 withContext(Dispatchers.Main) {
                     showLaunchErrorDialog(t.message ?: "Erreur native inconnue")
@@ -260,7 +280,7 @@ class WiiUEmulationActivity : AppCompatActivity() {
     }
 
     private fun showQuickMenu() {
-        if (hasEmulationStarted && !isGamePaused) {
+        if (isEmulationRunning && !isGamePaused) {
             isGamePaused = true
             try {
                 NativeEmulation.pauseTitle()
@@ -337,7 +357,7 @@ class WiiUEmulationActivity : AppCompatActivity() {
     }
 
     private fun resumeEmulationIfNeeded() {
-        if (hasEmulationStarted && isGamePaused) {
+        if (isEmulationRunning && isGamePaused) {
             isGamePaused = false
             try {
                 NativeEmulation.resumeTitle()
@@ -354,7 +374,7 @@ class WiiUEmulationActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (hasEmulationStarted && !isGamePaused) {
+        if (isEmulationRunning && !isGamePaused) {
             isGamePaused = true
             try {
                 NativeEmulation.pauseTitle()
@@ -366,7 +386,7 @@ class WiiUEmulationActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         setFullscreenImmersive()
-        if (hasEmulationStarted && isGamePaused) {
+        if (isEmulationRunning && isGamePaused) {
             isGamePaused = false
             try {
                 NativeEmulation.resumeTitle()
@@ -378,13 +398,13 @@ class WiiUEmulationActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         launchJob?.cancel()
-        if (hasEmulationStarted) {
+        if (isEmulationRunning) {
             try {
-                NativeEmulation.clearPadSurface()
                 NativeEmulation.pauseTitle()
             } catch (_: Throwable) {
             }
         }
+        exitProcess(0)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

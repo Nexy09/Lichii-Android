@@ -68,6 +68,10 @@ import java.text.NumberFormat
 import kotlin.math.roundToInt
 import org.yuzu.yuzu_emu.utils.ForegroundService
 import androidx.core.os.BundleCompat
+import android.net.Uri
+import org.yuzu.yuzu_emu.dolphin.DolphinGameHelper
+import org.yuzu.yuzu_emu.utils.FileUtil
+import org.yuzu.yuzu_emu.wiiu.WiiUGameHelper
 
 class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager.InputDeviceListener {
     private lateinit var binding: ActivityEmulationBinding
@@ -125,15 +129,40 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
 
         super.onCreate(savedInstanceState)
 
-        val maybeWiiUGame = BundleCompat.getParcelable(
+        val maybeGame = BundleCompat.getParcelable(
             intent.extras ?: Bundle(),
             EXTRA_SELECTED_GAME,
             Game::class.java
         )
-        if (maybeWiiUGame != null && maybeWiiUGame.isWiiU) {
-            WiiUEmulationActivity.launch(this, maybeWiiUGame)
-            finish()
-            return
+        if (maybeGame != null) {
+            if (maybeGame.isWiiU) {
+                WiiUEmulationActivity.launch(this, maybeGame)
+                finish()
+                return
+            } else if (maybeGame.isGameCube || maybeGame.isWii) {
+                DolphinEmulationActivity.launch(this, maybeGame)
+                finish()
+                return
+            }
+        }
+
+        val incomingPath = intent.data?.toString() ?: intent.getStringExtra("LaunchPath")
+        if (incomingPath != null) {
+            if (WiiUGameHelper.isWiiUPath(incomingPath)) {
+                val uri = Uri.parse(incomingPath)
+                val ext = FileUtil.getExtension(uri)
+                val wiiUGame = WiiUGameHelper.createWiiUGame(uri, incomingPath, ext, false)
+                WiiUEmulationActivity.launch(this, wiiUGame)
+                finish()
+                return
+            } else if (DolphinGameHelper.isGameCubePath(incomingPath) || DolphinGameHelper.isWiiPath(incomingPath)) {
+                val uri = Uri.parse(incomingPath)
+                val ext = FileUtil.getExtension(uri)
+                val dolphinGame = DolphinGameHelper.createDolphinGame(uri, incomingPath, ext, false)
+                DolphinEmulationActivity.launch(this, dolphinGame)
+                finish()
+                return
+            }
         }
 
         NativeConfig.reloadGlobalConfig()

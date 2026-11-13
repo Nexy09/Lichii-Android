@@ -105,6 +105,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
         <activity
             android:name="org.yuzu.yuzu_emu.activities.WiiUEmulationActivity"
             android:theme="@style/Theme.Yuzu.Main"
+            android:process=":wiiu"
             android:launchMode="singleTop"
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|uiMode|keyboard|keyboardHidden|navigation"
