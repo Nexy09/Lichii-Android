@@ -71,6 +71,8 @@ class WiiUEmulationActivity : AppCompatActivity() {
             val intent = Intent(context, WiiUEmulationActivity::class.java).apply {
                 putExtra(EXTRA_SELECTED_GAME, game)
                 putExtra(EXTRA_LAUNCH_PATH, game.path)
+                data = Uri.parse(game.path)
+                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             }
             context.startActivity(intent)
         }
@@ -101,8 +103,14 @@ class WiiUEmulationActivity : AppCompatActivity() {
         }
 
         if (!CemuEngineManager.ensureInitialized(this)) {
-            Toast.makeText(this, "Erreur d'initialisation du moteur Wii U (Cemu)", Toast.LENGTH_LONG).show()
-            finish()
+            val errorMsg = CemuEngineManager.lastInitError ?: "Erreur native inconnue"
+            Log.error("[WiiUEmulationActivity] Failed to initialize Wii U engine: $errorMsg")
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Erreur du moteur Wii U (Cemu)")
+                .setMessage("Impossible d'initialiser le moteur Cemu :\n\n$errorMsg\n\nVérifiez l'espace disponible et l'intégrité de l'application.")
+                .setCancelable(false)
+                .setPositiveButton(android.R.string.ok) { _, _ -> finish() }
+                .show()
             return
         }
 
@@ -404,7 +412,6 @@ class WiiUEmulationActivity : AppCompatActivity() {
             } catch (_: Throwable) {
             }
         }
-        exitProcess(0)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {

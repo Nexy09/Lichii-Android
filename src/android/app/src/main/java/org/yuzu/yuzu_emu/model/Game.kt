@@ -95,10 +95,14 @@ class Game(
             isWiiU -> Intent(YuzuApplication.appContext, WiiUEmulationActivity::class.java).apply {
                 putExtra(WiiUEmulationActivity.EXTRA_SELECTED_GAME, this@Game)
                 putExtra(WiiUEmulationActivity.EXTRA_LAUNCH_PATH, path)
+                data = Uri.parse(path)
+                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             }
             isGameCube || isWii -> Intent(YuzuApplication.appContext, DolphinEmulationActivity::class.java).apply {
                 putExtra(DolphinEmulationActivity.EXTRA_SELECTED_GAME, this@Game)
                 putExtra(DolphinEmulationActivity.EXTRA_LAUNCH_PATH, path)
+                data = Uri.parse(path)
+                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
             }
             else -> Intent(YuzuApplication.appContext, EmulationActivity::class.java).apply {
                 action = Intent.ACTION_VIEW

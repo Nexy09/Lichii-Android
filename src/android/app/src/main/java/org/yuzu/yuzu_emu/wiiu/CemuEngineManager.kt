@@ -26,12 +26,21 @@ object CemuEngineManager {
     @Volatile
     private var systemsInitialized = false
 
+    @Volatile
+    var lastInitError: String? = null
+
     @Synchronized
     fun ensureInitialized(context: Context): Boolean {
         if (initialized) {
             return true
         }
+        lastInitError = null
         return try {
+            try {
+                System.loadLibrary("c++_shared")
+            } catch (t: Throwable) {
+                Log.warning("[CemuEngineManager] c++_shared preload notice: ${t.message}")
+            }
             System.loadLibrary("CemuAndroid")
             val appContext = context.applicationContext
 
@@ -73,7 +82,8 @@ object CemuEngineManager {
             Log.info("[CemuEngineManager] Wii U engine initialized with Cemu 2.6 + Exynos 2200 RDNA 2 profile.")
             true
         } catch (t: Throwable) {
-            Log.error("[CemuEngineManager] Failed to initialize Wii U engine: ${t.message}")
+            lastInitError = "${t.javaClass.simpleName}: ${t.message}"
+            Log.error("[CemuEngineManager] Failed to initialize Wii U engine: $lastInitError")
             false
         }
     }
